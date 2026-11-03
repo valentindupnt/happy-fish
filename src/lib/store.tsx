@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { supabase, errorText } from './supabase'
 import { addDays, todayParis, weekStart } from './dates'
-import type { Category, Couple, FishStatus, ForceMessage, Goal, Message, Profile, Suggestion, Task, Wish } from './types'
+import type { Category, Couple, CoupleItem, FishStatus, ForceMessage, Goal, Message, Profile, Purchase, Review, ShopItem, Suggestion, Task, Wish } from './types'
 
 interface State {
   loading: boolean
@@ -17,12 +17,20 @@ interface State {
   messages: Message[]
   force: ForceMessage[]
   fish: FishStatus[]
+  shopItems: ShopItem[]
+  purchases: Purchase[]
+  coupleItems: CoupleItem[]
+  reviews: Review[]
+  pot: number
 }
 
 const EMPTY: State = {
   loading: true, me: null, partner: null, couple: null, categories: [], suggestions: [],
   goals: [], tasks: [], wishes: [], messages: [], force: [], fish: [],
+  shopItems: [], purchases: [], coupleItems: [], reviews: [], pot: 0,
 }
+
+type Part = 'profiles' | 'couple' | 'categories' | 'suggestions' | 'goals' | 'wishes' | 'messages' | 'force' | 'fish' | 'shop' | 'reviews'
 
 interface Toast { id: number; text: string; tone: 'info' | 'error' }
 
@@ -32,7 +40,7 @@ interface Store extends State {
   reloadAll: () => Promise<void>
   reloadTasks: () => Promise<void>
   loadWeek: (start: string) => Promise<void>
-  reload: (what: Array<'profiles' | 'couple' | 'categories' | 'suggestions' | 'goals' | 'wishes' | 'messages' | 'force' | 'fish'>) => Promise<void>
+  reload: (what: Part[]) => Promise<void>
   /** Appelle une action, affiche l'erreur éventuelle, renvoie true si tout s'est bien passé */
   run: (fn: () => PromiseLike<unknown>, success?: string) => Promise<boolean>
   toast: (text: string, tone?: 'info' | 'error') => void
@@ -94,6 +102,16 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
     },
     force: async () => ({ force: await must<ForceMessage[]>(supabase.from('force_messages').select('*').order('position')) }),
     fish: async () => ({ fish: await must<FishStatus[]>(supabase.from('fish_status').select('*')) }),
+    shop: async () => {
+      const [shopItems, purchases, coupleItems, pot] = await Promise.all([
+        must<ShopItem[]>(supabase.from('shop_items').select('*').order('position')),
+        must<Purchase[]>(supabase.from('purchases').select('profile_id, item_id')),
+        must<CoupleItem[]>(supabase.from('couple_items').select('item_id')),
+        must<number>(supabase.rpc('get_pot')),
+      ])
+      return { shopItems, purchases, coupleItems, pot: pot ?? 0 }
+    },
+    reviews: async () => ({ reviews: await must<Review[]>(supabase.from('weekly_reviews').select('*').order('week_start', { ascending: false }).limit(20)) }),
   }), [userId])
 
   const reload: Store['reload'] = useCallback(async (what) => {
@@ -127,10 +145,11 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       await Promise.all([
         supabase.rpc('ensure_week', { p_week: ws }),
         supabase.rpc('ensure_week', { p_week: addDays(ws, 7) }),
+        supabase.rpc('ensure_reviews'),
       ])
       const parts = await Promise.all([
         loaders.couple(), loaders.categories(), loaders.suggestions(), loaders.goals(),
-        loaders.wishes(), loaders.messages(), loaders.force(), loaders.fish(),
+        loaders.wishes(), loaders.messages(), loaders.force(), loaders.fish(), loaders.shop(), loaders.reviews(),
       ])
       const tasks = await fetchTasks(range.current.from, range.current.to)
       setState(Object.assign({ ...EMPTY, loading: false, me, partner, tasks }, ...parts))
@@ -202,6 +221,9 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `couple_id=eq.${coupleId}` }, () => schedule('tasks'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'xp_events' }, () => schedule('fish'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `couple_id=eq.${coupleId}` }, () => schedule('profiles'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'couples', filter: `id=eq.${coupleId}` }, () => { schedule('couple'); schedule('fish') })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pot_events', filter: `couple_id=eq.${coupleId}` }, () => { schedule('shop'); schedule('fish') })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_reviews', filter: `couple_id=eq.${coupleId}` }, () => schedule('reviews'))
       .subscribe()
     return () => { clearTimeout(timer); supabase.removeChannel(channel) }
   }, [coupleId, reload, reloadTasks])
@@ -221,7 +243,7 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       },
       categoryOf: (id) => state.categories.find((c) => c.id === id),
       goalOf: (id) => state.goals.find((g) => g.id === id),
-      fishOf: (pid) => state.fish.find((f) => f.profile_id === pid) || { profile_id: pid || '', xp: 0, level: 1, level_uncapped: 1 },
+      fishOf: (pid) => state.fish.find((f) => f.profile_id === pid) || { profile_id: pid || '', xp: 0, level: 1, level_uncapped: 1, coins: 0 },
     }
   }, [state, userId, today, reloadAll, reloadTasks, loadWeek, reload, run, toast, toasts])
 

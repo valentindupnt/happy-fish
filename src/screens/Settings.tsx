@@ -1,12 +1,14 @@
-import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { useEffect, useState } from 'react'
+import { supabase, errorText } from '../lib/supabase'
 import { useStore } from '../lib/store'
-import type { FishColor } from '../lib/types'
-import { Fish, PALETTES } from '../components/Fish'
-import { Icon } from '../components/ui'
+import type { FishColor, Profile } from '../lib/types'
+import { FREE_COLORS, Fish, PALETTES } from '../components/Fish'
+import { Icon, Switch } from '../components/ui'
+import { disablePush, enablePush, pushState, sendTestPush } from '../lib/push'
+import type { PushState } from '../lib/push'
 
-export function Settings({ onBack }: { onBack: () => void }) {
-  const { me, partner, couple, force, run, reload, partnerName } = useStore()
+export function Settings({ onBack, openShop }: { onBack: () => void; openShop: () => void }) {
+  const { me, partner, couple, force, run, reload, partnerName, purchases } = useStore()
   const [fishName, setFishName] = useState(me?.fish_name || '')
   const [color, setColor] = useState<FishColor>(me?.fish_color || 'corail')
   const [displayName, setDisplayName] = useState(me?.display_name || '')
@@ -51,7 +53,7 @@ export function Settings({ onBack }: { onBack: () => void }) {
       <section aria-label="Mon poisson" className="card pad stack" style={{ gap: 14 }}>
         <h2 className="h2">Mon poisson</h2>
         <div style={{ height: 96, background: 'var(--water)', border: '2px solid var(--ink)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Fish color={color} width={90} label={`Aperçu de ${fishName || 'ton poisson'}`} />
+          <Fish color={color} hat={me.fish_hat} width={90} label={`Aperçu de ${fishName || 'ton poisson'}`} />
         </div>
         <div className="field">
           <label htmlFor="fish-name">Surnom du poisson</label>
@@ -60,7 +62,7 @@ export function Settings({ onBack }: { onBack: () => void }) {
         <div className="field">
           <span className="label" id="color-label">Couleur</span>
           <div role="radiogroup" aria-labelledby="color-label" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {(Object.keys(PALETTES) as FishColor[]).map((c) => (
+            {(Object.keys(PALETTES) as FishColor[]).filter((c) => FREE_COLORS.includes(c) || purchases.some((p) => p.profile_id === me.id && p.item_id === c)).map((c) => (
               <button
                 key={c}
                 type="button"
@@ -76,7 +78,7 @@ export function Settings({ onBack }: { onBack: () => void }) {
               />
             ))}
           </div>
-          <span className="small">D’autres couleurs arriveront dans la boutique.</span>
+          <span className="small">D’autres couleurs, des habits et des familiers t’attendent dans la <button type="button" className="btn small ghost" style={{ padding: 0, minHeight: 0, textDecoration: 'underline' }} onClick={openShop}>boutique</button>.</span>
         </div>
       </section>
 
@@ -117,6 +119,8 @@ export function Settings({ onBack }: { onBack: () => void }) {
         </div>
       </section>
 
+      <Notifications me={me} partnerLabel={partner ? partnerName : 'ton duo'} />
+
       <section aria-label="Notre duo" className="card pad stack">
         <h2 className="h2">Notre duo</h2>
         {partner ? (
@@ -130,5 +134,78 @@ export function Settings({ onBack }: { onBack: () => void }) {
         <button type="button" className="btn" onClick={() => supabase.auth.signOut()}>Se déconnecter</button>
       </section>
     </div>
+  )
+}
+
+function Notifications({ me, partnerLabel }: { me: Profile; partnerLabel: string }) {
+  const { run, reload, toast } = useStore()
+  const [state, setState] = useState<PushState | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => { pushState().then(setState).catch(() => setState('unsupported')) }, [])
+
+  const enable = async () => {
+    setBusy(true)
+    try {
+      const next = await enablePush(me.id)
+      setState(next)
+      if (next === 'on') toast('Notifications activées sur cet appareil')
+    } catch (e) {
+      toast(errorText(e), 'error')
+    }
+    setBusy(false)
+  }
+
+  const test = async () => {
+    setBusy(true)
+    try {
+      const sent = await sendTestPush()
+      toast(sent ? 'Notification de test envoyée' : 'Aucun appareil enregistré', sent ? 'info' : 'error')
+    } catch (e) {
+      toast(errorText(e), 'error')
+    }
+    setBusy(false)
+  }
+
+  const off = async () => {
+    setBusy(true)
+    try { await disablePush(); setState('off') } catch (e) { toast(errorText(e), 'error') }
+    setBusy(false)
+  }
+
+  const pref = async (col: keyof Profile, value: boolean) => {
+    if (await run(() => supabase.from('profiles').update({ [col]: value }).eq('id', me.id))) await reload(['profiles'])
+  }
+
+  return (
+    <section aria-label="Notifications" className="card pad stack">
+      <h2 className="h2">Notifications</h2>
+      {state === 'needs-install' && (
+        <span style={{ fontSize: 14, fontWeight: 600 }}>
+          Sur iPhone, ajoute d’abord l’app à l’écran d’accueil (Safari, Partager, Sur l’écran d’accueil), puis ouvre-la depuis son icône pour activer les notifications.
+        </span>
+      )}
+      {state === 'unsupported' && <span style={{ fontSize: 14, fontWeight: 600 }}>Ce navigateur ne gère pas les notifications.</span>}
+      {state === 'denied' && (
+        <span style={{ fontSize: 14, fontWeight: 600 }}>
+          Les notifications sont refusées pour cette app. Réactive-les dans les Réglages de l’iPhone, puis Notifications, puis Happy Fish.
+        </span>
+      )}
+      {state === 'off' && <button type="button" className="btn primary" disabled={busy} onClick={enable}>Activer les notifications sur cet appareil</button>}
+      {state === 'on' && (
+        <div className="wrap" style={{ alignItems: 'center' }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--green-ink)' }}>Activées sur cet appareil</span>
+          <button type="button" className="btn small" disabled={busy} onClick={test}>Envoyer un test</button>
+          <button type="button" className="btn small ghost" disabled={busy} onClick={off}>Désactiver</button>
+        </div>
+      )}
+      <div>
+        <Switch checked={me.notify_messages} onChange={(v) => pref('notify_messages', v)} label={`Petits mots de ${partnerLabel}`} />
+        <Switch checked={me.notify_gestures} onChange={(v) => pref('notify_gestures', v)} label="Bulles et friandises" />
+        <Switch checked={me.notify_checks} onChange={(v) => pref('notify_checks', v)} label={`Quand ${partnerLabel} coche un objectif`} />
+        <Switch checked={me.notify_evening} onChange={(v) => pref('notify_evening', v)} label="Rappel du soir, vers 20 h" />
+        <Switch checked={me.notify_weekly} onChange={(v) => pref('notify_weekly', v)} label="Bilan du lundi matin" />
+      </div>
+    </section>
   )
 }

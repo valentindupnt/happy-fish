@@ -237,3 +237,46 @@ a { color: var(--blue-ink); }
   .swim, .swim-rev, .bowl-bubble, .check.pop { animation: none; }
   .bowl-fish { transform: translateX(-50%); }
 }
+
+/* Bocaux de la boutique */
+.bowl-carre .bowl-glass { border-radius: 14%; }
+.bowl-carre .bowl-rim { left: 18%; right: 18%; }
+.bowl-hublot .bowl-glass { border-radius: 50%; border-width: 7px; border-color: #B8860B; box-shadow: inset 0 0 0 3px #F2C66D; }
+.bowl-hublot .bowl-rim { display: none; }
+.bowl-pet { position: absolute; left: 22%; bottom: 9%; z-index: 1; }
+.mini-bowl { width: 40px; height: 40px; border: 3px solid var(--ink); border-radius: 46% 46% 42% 42%; background: var(--water); overflow: hidden; position: relative; }
+.mini-bowl > div { position: absolute; left: 0; right: 0; bottom: 0; height: 25%; background: var(--sand); }
+.mini-bowl.carre { border-radius: 14%; }
+.mini-bowl.hublot { border-radius: 50%; border: 5px solid #B8860B; }
+
+/* Grand aquarium commun */
+.tank { position: relative; width: 100%; aspect-ratio: 16 / 10; border: 5px solid var(--ink); border-radius: 12px; overflow: hidden; background: #D6ECFF; }
+.tank-water { position: absolute; left: 0; right: 0; top: 10%; bottom: 0; background: linear-gradient(var(--water) 0 60%, var(--deep) 60% 100%); }
+.tank-sand { position: absolute; left: 0; right: 0; bottom: 0; height: 13%; background: var(--sand); }
+.tank-decor { position: absolute; left: 4%; right: 4%; bottom: 6%; display: flex; justify-content: space-between; align-items: flex-end; }
+.tank-pets { position: absolute; left: 30%; right: 30%; bottom: 7%; display: flex; justify-content: space-around; align-items: flex-end; z-index: 1; }
+.tank-fish { position: absolute; z-index: 2; }
+.tank-fish-0 { top: 18%; animation: swimx 11s ease-in-out infinite; }
+.tank-fish-1 { top: 45%; animation: swimx 13s ease-in-out -6.5s infinite; }
+@keyframes swimx {
+  0% { left: 4%; transform: scaleX(1); }
+  47% { left: 66%; transform: scaleX(1); }
+  50% { left: 66%; transform: scaleX(-1); }
+  97% { left: 4%; transform: scaleX(-1); }
+  100% { left: 4%; transform: scaleX(1); }
+}
+
+/* Boutique */
+.shop-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.shop-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px 10px; background: var(--card); border: 2px solid var(--ink); border-radius: 12px; text-align: center; min-height: 150px; }
+.shop-item.locked { background: #EEF2F7; border-style: dashed; border-color: var(--muted); }
+.shop-item.equipped { background: var(--green-bg); }
+.shop-item .preview { height: 46px; display: flex; align-items: center; justify-content: center; }
+.shop-item .name { font-size: 12px; font-weight: 800; line-height: 1.2; }
+.shop-item .btn { margin-top: auto; width: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tank-fish { animation: none; }
+  .tank-fish-0 { left: 12%; }
+  .tank-fish-1 { left: 58%; transform: scaleX(-1); }
+}

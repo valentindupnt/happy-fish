@@ -1,6 +1,6 @@
 # Happy Fish : guide de mise en route et de reprise
 
-*Application d'objectifs à deux, avec un poisson pixel art qui grandit. Version 1, lot 1.*
+*Application d'objectifs à deux, avec un poisson pixel art qui grandit. Version 1, lots 1 et 2.*
 
 ## 1. En bref
 
@@ -31,21 +31,23 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 6. Julie fait pareil sur son iPhone, choisit **J'ai un code de mon duo** et saisit ce code.
 7. Supabase : **Authentication**, puis **Sign In / Providers**, désactiver **Allow new users to sign up**. Plus personne ne peut créer de compte.
 8. Sur chaque iPhone : Safari, **Partager**, **Sur l'écran d'accueil**. Ouvrir ensuite l'app depuis l'icône et se reconnecter une fois avec **Me connecter** (l'app installée ne partage pas la session de Safari).
+9. **Notifications**, toujours depuis l'icône de l'écran d'accueil (sur iPhone, elles ne marchent pas dans Safari) : **Paramètres**, **Activer les notifications sur cet appareil**, accepter, puis **Envoyer un test**. Chacun choisit ensuite ce qu'il veut recevoir avec les interrupteurs.
 
 **Mot de passe oublié** : pas d'e-mail de réinitialisation. Dans Supabase, **Authentication**, puis **Users**, ouvrir le compte et lui envoyer ou définir un nouveau mot de passe, ou demander à Claude de le faire.
 
-## 3. Ce que fait le lot 1
+## 3. Ce que fait l'application
 
 | Écran | Contenu |
 |---|---|
-| **Aujourd'hui** | Le poisson et son XP, les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher, reporter, compteur de ratés |
+| **Aujourd'hui** | Le poisson et son XP, le bilan de la semaine passée et les surprises, les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher, reporter, compteur de ratés |
 | **Ma semaine** | Vue jour par jour, vue mois, préparation de la semaine, ajout sur un jour précis, semaine de Julie |
 | **Ensemble** | Objectifs communs (XP pour les deux) et envies avec notes et lien |
 | **Petits mots** | Chat en direct, bulles, friandises (+2 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif |
-| **Aquarium** | Les deux bocaux, stades et niveaux |
-| **Paramètres** | Surnom et couleur du poisson, surnoms, messages de force, code du duo, déconnexion |
+| **Aquarium** | Les deux bocaux, puis le grand aquarium commun avec ses décorations, la cagnotte, stades et niveaux |
+| **Boutique** | Couleurs, bocaux, habits et accessoires, familiers, cagnotte commune, décorations |
+| **Paramètres** | Surnom et couleur du poisson, surnoms, messages de force, notifications, code du duo, déconnexion |
 
-**Lot 2 (à venir)** : notifications et rappel du soir, boutique et grand aquarium commun, bilan du lundi avec la surprise.
+**Notifications (lot 2)** : petit mot reçu, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h.
 
 ## 4. Les règles (écrites dans la base)
 
@@ -61,6 +63,10 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 | Niveaux | 60 XP pour le niveau 2, puis 30 XP de plus à chaque niveau, 15 niveaux, 5 stades |
 | Grand aquarium | Sans lui, le poisson reste au niveau 6 et l'XP s'accumule en réserve |
 | Ratés | Sous-objectifs des jours passés de la semaine, ni faits ni retirés. Un raté reporté puis fait ne compte pas |
+| Surprise | Calculée le lundi matin : 3 ratés ou plus la semaine passée, et on doit une surprise à l'autre. Seul celui qui la reçoit peut la marquer comme reçue |
+| Pièces | 10 par niveau gagné, 25 de plus à chaque nouveau stade, moins les achats et les versements à la cagnotte |
+| Boutique | Chaque objet s'achète une fois, à partir d'un certain niveau. On ne peut équiper que ce qu'on possède |
+| Cagnotte | Chacun y verse ses pièces. À 120, le grand aquarium s'achète tout seul et débloque le niveau 7. Ensuite, elle sert aux décorations communes |
 
 Personne ne peut modifier l'XP, une coche ou les données de l'autre en contournant l'app : ces actions passent par des fonctions de la base qui vérifient tout.
 
@@ -72,7 +78,14 @@ Personne ne peut modifier l'XP, une coche ou les données de l'autre en contourn
 | L'apparence, un écran | Le code, poussé sur `main` : Vercel redéploie en 1 à 2 minutes |
 | Une règle de la base | Un fichier de migration (voir ci-dessous) |
 
-**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués.
+**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql` et `003_push.sql` sont déjà appliquées sur le projet `happy-fish`.
+
+### Les notifications, côté coulisses
+- La fonction `notify` (dossier `supabase/functions/notify/`, déployée dans Supabase, onglet **Edge Functions**) envoie les notifications.
+- La base l'appelle quand un petit mot arrive ou qu'un objectif est coché, et une tâche planifiée (`happy-fish-tick`, extension pg_cron) la réveille toutes les heures pour le rappel du soir et le bilan du lundi (heure de Paris).
+- Les clés d'envoi (VAPID) et le secret qui protège la fonction sont rangés dans **Vault** (Supabase, rubrique **Vault**, dans **Integrations**) sous les noms `hf_vapid_public`, `hf_vapid_private`, `hf_hook_secret` et `hf_notify_url`. La clé privée et le secret n'existent nulle part ailleurs : ne jamais les copier dans le code.
+- La clé publique VAPID est aussi écrite dans `src/lib/push.ts`, c'est normal. Si on change les clés dans Vault, il faut changer celle-ci et chacun réactive les notifications.
+- Pour un nouveau projet Supabase : appliquer les deux migrations, créer les quatre secrets Vault, déployer la fonction avec la vérification JWT désactivée (elle vérifie elle-même le secret ou la session).
 
 ## 6. Reprendre le projet
 
@@ -92,9 +105,12 @@ npm run build                # vérification complète
 | `src/components/` | Poisson pixel art, bocal, ajout d'objectif, fiche d'un sous-objectif |
 | `src/lib/store.tsx` | Chargement des données et mises à jour en direct |
 | `src/lib/xp.ts` | Barème XP et niveaux (le même que dans la base) |
+| `src/lib/push.ts`, `public/sw.js` | Abonnement aux notifications et leur affichage sur le téléphone |
 | `supabase/schema.sql` | Tables, sécurité, règles |
 | `supabase/seed.sql` | Catégories et suggestions de départ |
-| `tests/db.test.ts` | 18 tests des règles |
+| `supabase/migrations/` | Évolutions de la base (lot 2 : boutique, cagnotte, bilan, notifications) |
+| `supabase/functions/notify/` | Envoi des notifications |
+| `tests/` | 30 tests des règles (`db.test.ts` pour le lot 1, `lot2.test.ts` pour le lot 2) |
 
 ## 7. Dépannage
 
@@ -105,3 +121,6 @@ npm run build                # vérification complète
 | « Code inconnu » en rejoignant le duo | Vérifier le code dans Paramètres, sur le téléphone de celui qui a créé le duo |
 | L'app ne charge plus rien | Projet Supabase en pause après 7 jours sans activité : **Restore project** dans Supabase |
 | « Relation does not exist » | `seed.sql` lancé avant `schema.sql` : lancer `schema.sql` d'abord |
+| Pas de bouton pour activer les notifications | Ouvrir l'app depuis l'icône de l'écran d'accueil, pas depuis Safari (iOS 16.4 ou plus récent) |
+| Notifications refusées par erreur | Réglages de l'iPhone, **Notifications**, **Happy Fish**, autoriser |
+| Le test n'arrive pas | Supabase, **Edge Functions**, `notify`, onglet **Logs** ; désactiver puis réactiver dans Paramètres |

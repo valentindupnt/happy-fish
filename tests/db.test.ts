@@ -1,65 +1,17 @@
-// Tests des règles de la base, sans Supabase : Postgres embarqué (PGlite)
-// avec un faux schéma "auth" qui imite celui de Supabase.
-import { PGlite } from '@electric-sql/pglite'
-import { readFileSync } from 'node:fs'
+// Tests des règles du lot 1 (schéma + migrations), sans Supabase : Postgres embarqué
 import { beforeAll, describe, expect, it } from 'vitest'
+import { createDb, INTRUDER, JULIE, OTHER, VAL } from './helpers'
 
-const schema = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
-const seed = readFileSync(new URL('../supabase/seed.sql', import.meta.url), 'utf8')
-
-const AUTH_STUB = `
-  create schema if not exists auth;
-  create table if not exists auth.users (id uuid primary key, email text);
-  create or replace function auth.uid() returns uuid language sql stable as
-    $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-  do $$ begin
-    if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon; end if;
-    if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated; end if;
-  end $$;
-  grant usage on schema public, auth to anon, authenticated;
-  grant execute on function auth.uid() to anon, authenticated;
-`
-
-const VAL = '00000000-0000-0000-0000-00000000000a'
-const JULIE = '00000000-0000-0000-0000-00000000000b'
-const OTHER = '00000000-0000-0000-0000-00000000000c'
-const INTRUDER = '00000000-0000-0000-0000-00000000000d'
-
-let db: PGlite
-
-async function as<T>(user: string, sql: string, params: unknown[] = []): Promise<T[]> {
-  await db.exec(`reset role; select set_config('request.jwt.claim.sub', '${user}', false); set role authenticated;`)
-  try {
-    const res = await db.query<T>(sql, params)
-    return res.rows
-  } finally {
-    await db.exec(`reset role;`)
-  }
-}
-
-async function admin<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-  await db.exec(`reset role;`)
-  return (await db.query<T>(sql, params)).rows
-}
-
-async function xpOf(user: string): Promise<number> {
-  const rows = await admin<{ xp: number }>(`select coalesce(sum(amount), 0)::int as xp from public.xp_events where profile_id = $1`, [user])
-  return rows[0].xp
-}
-
-async function today(): Promise<string> {
-  const rows = await admin<{ d: string }>(`select public.today_paris()::text as d`)
-  return rows[0].d
-}
+let as: Awaited<ReturnType<typeof createDb>>['as']
+let admin: Awaited<ReturnType<typeof createDb>>['admin']
+let xpOf: Awaited<ReturnType<typeof createDb>>['xpOf']
+let today: Awaited<ReturnType<typeof createDb>>['today']
 
 describe('Happy Fish, règles de la base', () => {
   let code = ''
 
   beforeAll(async () => {
-    db = new PGlite()
-    await db.exec(AUTH_STUB)
-    await db.exec(schema)
-    await db.exec(seed)
+    ;({ as, admin, xpOf, today } = await createDb())
     await admin(`insert into auth.users (id, email) values
       ('${VAL}', 'val@test.fr'), ('${JULIE}', 'julie@test.fr'),
       ('${OTHER}', 'autre@test.fr'), ('${INTRUDER}', 'intrus@test.fr')`)

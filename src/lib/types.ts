@@ -1,4 +1,4 @@
-export type FishColor = 'corail' | 'rose' | 'lagon' | 'ocean' | 'soleil'
+export type FishColor = 'corail' | 'rose' | 'lagon' | 'ocean' | 'soleil' | 'amethyste' | 'cerise' | 'menthe' | 'nuit' | 'or'
 
 export interface Profile {
   id: string
@@ -8,6 +8,14 @@ export interface Profile {
   partner_nickname: string | null
   fish_name: string
   fish_color: FishColor
+  fish_hat: string | null
+  fish_pet: string | null
+  bowl_style: string
+  notify_messages: boolean
+  notify_gestures: boolean
+  notify_checks: boolean
+  notify_evening: boolean
+  notify_weekly: boolean
 }
 
 export interface Couple {
@@ -85,4 +93,37 @@ export interface FishStatus {
   xp: number
   level: number
   level_uncapped: number
+  coins: number
+}
+
+export type ItemKind = 'color' | 'bowl' | 'hat' | 'pet' | 'decor'
+
+export interface ShopItem {
+  id: string
+  kind: ItemKind
+  name: string
+  price: number
+  min_level: number
+  scope: 'perso' | 'commun'
+  position: number
+}
+
+export interface Purchase {
+  profile_id: string
+  item_id: string
+}
+
+export interface CoupleItem {
+  item_id: string
+}
+
+export interface Review {
+  id: string
+  profile_id: string
+  week_start: string
+  done: number
+  missed: number
+  xp: number
+  surprise_due: boolean
+  surprise_received_at: string | null
 }

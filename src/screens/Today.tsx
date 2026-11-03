@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useStore } from '../lib/store'
 import { DAY_LETTERS, dayName, dayNumber, longDay, weekDays, weekStart } from '../lib/dates'
-import { coinsEarned, LEVEL_CAP_WITHOUT_AQUARIUM, levelProgress, stadeName } from '../lib/xp'
+import { LEVEL_CAP_WITHOUT_AQUARIUM, levelProgress, stadeName } from '../lib/xp'
 import { missedThisWeek, tasksOfDay } from '../lib/tasks'
 import type { Task } from '../lib/types'
 import { Fish } from '../components/Fish'
 import { TaskRow } from '../components/TaskRow'
 import { Bar, Coin, Icon } from '../components/ui'
+import { WeekReview } from '../components/WeekReview'
 
 export function Today({ openTask, openAdd, goWeek, goSettings }: {
   openTask: (t: Task) => void
@@ -36,13 +37,13 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
           <h1 className="title">Aujourd’hui</h1>
         </div>
         <div className="head-row" style={{ gap: 8 }}>
-          <span className="pill" aria-label={`${coinsEarned(fish.level)} pièces`}><Coin /><span>{coinsEarned(fish.level)}</span></span>
+          <span className="pill" aria-label={`${fish.coins ?? 0} pièces`}><Coin /><span>{fish.coins ?? 0}</span></span>
           <button type="button" className="icon-btn" aria-label="Paramètres" onClick={goSettings}><Icon name="settings" /></button>
         </div>
       </header>
 
       <div className="card xp-card">
-        <div className="fish-tile"><Fish color={me.fish_color} width={39} label={me.fish_name} /></div>
+        <div className="fish-tile"><Fish color={me.fish_color} hat={me.fish_hat} width={39} label={me.fish_name} /></div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div className="row-between">
             <span style={{ fontSize: 15, fontWeight: 800 }}>{me.fish_name}, {stadeName(fish.level).toLowerCase()} niv. {fish.level}</span>
@@ -52,6 +53,8 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
           {capped && <span className="small">XP en réserve : il faut le grand aquarium pour grandir.</span>}
         </div>
       </div>
+
+      <WeekReview />
 
       {!partner && couple && (
         <div className="card pad cream stack">

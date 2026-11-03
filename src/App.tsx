@@ -12,6 +12,7 @@ import { Together } from './screens/Together'
 import { Chat } from './screens/Chat'
 import { Aquarium } from './screens/Aquarium'
 import { Settings } from './screens/Settings'
+import { Shop } from './screens/Shop'
 import { AddGoal } from './components/AddGoal'
 import type { AddGoalInit } from './components/AddGoal'
 import { TaskSheet } from './components/TaskSheet'
@@ -60,8 +61,8 @@ function Splash() {
 
 function Main() {
   const { loading, me, messages, userId, today } = useStore()
-  const [tab, setTab] = useState<Tab>('today')
-  const [view, setView] = useState<'tabs' | 'week' | 'settings'>('tabs')
+  const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get('tab') === 'chat' ? 'chat' : 'today'))
+  const [view, setView] = useState<'tabs' | 'week' | 'settings' | 'shop'>('tabs')
   const [adding, setAdding] = useState<AddGoalInit | null>(null)
   const [openTaskItem, setOpenTaskItem] = useState<Task | null>(null)
   const [chatRef, setChatRef] = useState<string | null>(null)
@@ -72,6 +73,15 @@ function Main() {
   const openAdd = useCallback((day: string) => setAdding({ day }), [])
 
   useEffect(() => { scrollRef.current?.scrollTo(0, 0) }, [tab, view])
+  // Clic sur une notification alors que l'app est déjà ouverte
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === 'open' && String(e.data.url).includes('tab=chat')) { setTab('chat'); setView('tabs') }
+    }
+    navigator.serviceWorker.addEventListener('message', onMsg)
+    return () => navigator.serviceWorker.removeEventListener('message', onMsg)
+  }, [])
   useEffect(() => {
     if (tab === 'chat' && view === 'tabs' && messages.length) {
       const last = messages[messages.length - 1].created_at
@@ -87,17 +97,18 @@ function Main() {
 
   let content
   if (view === 'week') content = <Week onBack={() => setView('tabs')} openTask={openTask} openAdd={openAdd} />
-  else if (view === 'settings') content = <Settings onBack={() => setView('tabs')} />
+  else if (view === 'settings') content = <Settings onBack={() => setView('tabs')} openShop={() => setView('shop')} />
+  else if (view === 'shop') content = <Shop onBack={() => { setTab('aquarium'); setView('tabs') }} />
   else if (tab === 'today') content = <Today openTask={openTask} openAdd={openAdd} goWeek={() => setView('week')} goSettings={() => setView('settings')} />
   else if (tab === 'together') content = <Together openTask={openTask} openAdd={(init) => setAdding(init)} />
   else if (tab === 'chat') content = <Chat refTaskId={chatRef} clearRef={() => setChatRef(null)} />
-  else content = <Aquarium />
+  else content = <Aquarium openShop={() => setView('shop')} />
 
   const isChat = view === 'tabs' && tab === 'chat'
   return (
     <>
       <div ref={scrollRef} className={isChat ? 'scroll fixed' : 'scroll'}>{content}</div>
-      {view !== 'settings' && (
+      {view !== 'settings' && view !== 'shop' && (
         <nav className="tabs" aria-label="Navigation">
           <div className="tabs-inner">
             <TabButton name="today" icon="today" label="Aujourd’hui" active={view !== 'tabs' ? view === 'week' && tab === 'today' : tab === 'today'} onClick={() => { setTab('today'); setView('tabs') }} />
