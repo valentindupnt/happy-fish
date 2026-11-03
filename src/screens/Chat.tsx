@@ -92,6 +92,16 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
         <div ref={endRef} />
       </div>
 
+      {!partner ? (
+        <div className="composer" style={{ bottom: 'calc(76px + var(--safe-bottom))' }}>
+          <div className="card pad cream stack" style={{ gap: 6 }}>
+            <span className="h2" style={{ fontSize: 15 }}>Les petits mots s’ouvrent quand ton duo t’a rejoint</span>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>
+              Donne ce code à rentrer dans l’app : <strong style={{ fontFamily: 'var(--pixel)', fontSize: 13 }}>{couple?.invite_code}</strong>
+            </span>
+          </div>
+        </div>
+      ) : (
       <div className="composer" style={{ bottom: 'calc(76px + var(--safe-bottom))' }}>
         {refTask && (
           <div className="row-between" style={{ alignItems: 'center' }}>
@@ -129,6 +139,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
           <button type="button" className="icon-btn" style={{ background: 'var(--orange)' }} aria-label="Envoyer" disabled={!text.trim() || sending || !partner} onClick={() => send(text)}><Icon name="send" size={20} stroke={2.6} /></button>
         </div>
       </div>
+      )}
     </div>
   )
 }
