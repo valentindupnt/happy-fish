@@ -11,8 +11,8 @@
 | **Appareils** | iPhone, app web ajoutée à l'écran d'accueil |
 | **Code** | GitHub : `valentindupnt/happy-fish`, branche `main` |
 | **Hébergement** | Vercel (offre Hobby, gratuite) |
-| **Base de données** | Supabase créé depuis Vercel (offre Free) |
-| **Connexion** | Code à 6 chiffres reçu par e-mail, une seule fois |
+| **Base de données** | Supabase, projet `happy-fish` (offre Free, Paris) |
+| **Connexion** | E-mail et mot de passe, une fois par appareil (aucun e-mail envoyé) |
 
 ## 2. Mise en route (une seule fois, environ 20 minutes)
 
@@ -24,19 +24,15 @@
 Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `supabase/schema.sql` puis **Run**, puis celui de `supabase/seed.sql`, puis mettre à jour l'adresse et la clé dans `src/lib/supabase.ts`.
 
 ### Reste à faire dans Supabase (supabase.com, projet `happy-fish`)
-5. **Authentication**, puis **Emails** (modèles d'e-mails) : dans les modèles **Magic Link** et **Confirm signup**, remplacer le corps par :
-   ```html
-   <h2>Ton code Happy Fish</h2>
-   <p>Tape ce code dans l'app : <strong>{{ .Token }}</strong></p>
-   ```
-   Sans cette étape, l'e-mail contient un lien au lieu d'un code. Sur iPhone, ce lien s'ouvrirait dans Safari et l'app installée resterait déconnectée.
-6. Facultatif : **Authentication**, puis **URL Configuration**, **Site URL** = l'adresse de l'app sur Vercel. Pas indispensable avec la connexion par code.
+4. **Authentication**, puis **Sign In / Providers**, puis **Email** : désactiver **Confirm email**, puis **Save**. L'app n'envoie aucun e-mail : l'envoi intégré de Supabase ne marche que pour les membres de l'équipe Supabase, et ses modèles ne sont modifiables qu'avec un service d'envoi externe (SMTP).
 
 ### Vos deux comptes
-7. Valentin ouvre l'adresse de l'app dans Safari, saisit son e-mail, tape le code reçu, donne son prénom et choisit **Créer notre duo**. L'app affiche un code à 6 caractères.
-8. Julie fait pareil sur son iPhone, choisit **J'ai un code de mon duo** et saisit ce code.
-9. Supabase : **Authentication**, puis **Sign In / Providers**, désactiver **Allow new users to sign up**. Plus personne ne peut créer de compte.
-10. Sur chaque iPhone : Safari, **Partager**, **Sur l'écran d'accueil**. Ouvrir ensuite l'app depuis l'icône et se reconnecter une fois avec un code (l'app installée ne partage pas la session de Safari).
+5. Valentin ouvre l'adresse de l'app dans Safari, choisit **Créer mon compte** (e-mail et mot de passe), donne son prénom et choisit **Créer notre duo**. L'app affiche un code à 6 caractères.
+6. Julie fait pareil sur son iPhone, choisit **J'ai un code de mon duo** et saisit ce code.
+7. Supabase : **Authentication**, puis **Sign In / Providers**, désactiver **Allow new users to sign up**. Plus personne ne peut créer de compte.
+8. Sur chaque iPhone : Safari, **Partager**, **Sur l'écran d'accueil**. Ouvrir ensuite l'app depuis l'icône et se reconnecter une fois avec **Me connecter** (l'app installée ne partage pas la session de Safari).
+
+**Mot de passe oublié** : pas d'e-mail de réinitialisation. Dans Supabase, **Authentication**, puis **Users**, ouvrir le compte et lui envoyer ou définir un nouveau mot de passe, ou demander à Claude de le faire.
 
 ## 3. Ce que fait le lot 1
 
@@ -105,8 +101,7 @@ npm run build                # vérification complète
 | Symptôme | Solution |
 |---|---|
 | « Configuration manquante » | Adresse ou clé Supabase absente de `src/lib/supabase.ts` |
-| L'e-mail contient un lien, pas un code | Étape 5 : modifier les deux modèles d'e-mail |
-| Pas d'e-mail reçu | Regarder les spams. Le service d'e-mail intégré à Supabase limite le nombre d'envois par heure : attendre un peu |
+| « Compte pas encore confirmé » | Étape 4 : désactiver **Confirm email** dans Supabase |
 | « Code inconnu » en rejoignant le duo | Vérifier le code dans Paramètres, sur le téléphone de celui qui a créé le duo |
 | L'app ne charge plus rien | Projet Supabase en pause après 7 jours sans activité : **Restore project** dans Supabase |
 | « Relation does not exist » | `seed.sql` lancé avant `schema.sql` : lancer `schema.sql` d'abord |
