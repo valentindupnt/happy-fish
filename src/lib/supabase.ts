@@ -2,12 +2,18 @@ import { createClient } from '@supabase/supabase-js'
 
 const env = import.meta.env as Record<string, string | undefined>
 
-// En local : VITE_… ; sur Vercel : variables créées par l'intégration Supabase
-const url = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL
+// Projet Supabase « happy-fish ». La clé publishable est publique par nature
+// (elle est livrée dans l'app) : la sécurité repose sur les règles de la base.
+// Les variables d'environnement, si elles existent, ont la priorité.
+const PROJECT_URL = 'https://ovdieabdnbhghkjsfzcn.supabase.co'
+const PUBLISHABLE_KEY = 'sb_publishable_QPAcygMKBRtC1qHxQ_r6vw_ndE8XZhU'
+
+const url = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || PROJECT_URL
 const key =
   env.VITE_SUPABASE_KEY ||
   env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  PUBLISHABLE_KEY
 
 export const configured = Boolean(url && key)
 

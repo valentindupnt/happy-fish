@@ -162,21 +162,21 @@ create unique index xp_bonus_once on public.xp_events (profile_id, reason, ref_d
 -- ---------------------------------------------------------------------
 
 create or replace function public.today_paris() returns date
-language sql stable as $$ select (now() at time zone 'Europe/Paris')::date $$;
+language sql stable set search_path = public as $$ select (now() at time zone 'Europe/Paris')::date $$;
 
 create or replace function public.week_start(d date) returns date
-language sql immutable as $$ select d - (extract(isodow from d)::int - 1) $$;
+language sql immutable set search_path = public as $$ select d - (extract(isodow from d)::int - 1) $$;
 
 -- 1 XP par tranche de 5 minutes, minimum 1, plafond 24 (2 h)
 create or replace function public.xp_for_minutes(m int) returns int
-language sql immutable as $$ select least(24, greatest(1, m / 5)) $$;
+language sql immutable set search_path = public as $$ select least(24, greatest(1, m / 5)) $$;
 
 -- XP cumulée pour atteindre le niveau n : 60 au niveau 1, puis 30 de plus par niveau
 create or replace function public.xp_to_reach(n int) returns int
-language sql immutable as $$ select 60 * (n - 1) + 15 * (n - 1) * (n - 2) $$;
+language sql immutable set search_path = public as $$ select 60 * (n - 1) + 15 * (n - 1) * (n - 2) $$;
 
 create or replace function public.level_from_xp(xp int, cap int) returns int
-language plpgsql immutable as $$
+language plpgsql immutable set search_path = public as $$
 declare n int := 1;
 begin
   while n < least(cap, 15) and xp >= public.xp_to_reach(n + 1) loop
@@ -479,8 +479,7 @@ begin
   return new;
 end $$;
 
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created after insert on auth.users
+create or replace trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
 -- Comptes créés avant ce script
@@ -521,7 +520,9 @@ alter table public.default_suggestions enable row level security;
 alter table public.schema_migrations enable row level security;
 
 revoke all on all tables in schema public from anon, authenticated;
-revoke all on all functions in schema public from public, anon;
+-- Supabase donne par défaut l'exécution des fonctions à anon et authenticated :
+-- on retire tout, puis on rend seulement les fonctions prévues pour l'app.
+revoke all on all functions in schema public from public, anon, authenticated;
 
 create policy couples_read on public.couples for select to authenticated using (id = public.my_couple());
 

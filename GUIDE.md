@@ -16,20 +16,21 @@
 
 ## 2. Mise en route (une seule fois, environ 20 minutes)
 
-### Vercel
-1. Sur vercel.com : **Add New**, puis **Project**, puis importer `happy-fish`. Garder les réglages proposés (Vite est détecté) et cliquer **Deploy**. L'app affichera « Configuration manquante » : c'est normal à ce stade.
-2. Dans le projet, onglet **Storage**, puis **Create Database**, choisir **Supabase**, l'offre **Free**, la région **Paris** (ou Francfort), et le connecter au projet `happy-fish`.
-3. Onglet **Deployments**, sur le dernier déploiement : **…**, puis **Redeploy**, pour que l'app prenne en compte les variables ajoutées par Supabase.
+### Déjà fait (3 novembre 2026)
+1. **Vercel** : projet `happy-fish` importé depuis GitHub, redéployé à chaque push sur `main`.
+2. **Supabase** : projet `happy-fish` (région Paris, offre Free) dans l'organisation de Valentin, créé via le connecteur Supabase de Claude. Schéma et données de départ installés, contrôles de sécurité passés.
+3. **Branchement** : l'adresse du projet et sa clé publique (publishable) sont écrites dans `src/lib/supabase.ts`. Aucune variable d'environnement à régler sur Vercel. La clé secrète n'est utilisée nulle part.
 
-### Supabase (bouton **Open in Supabase** depuis l'onglet Storage de Vercel)
-4. **SQL Editor** : coller le **contenu** de `supabase/schema.sql`, puis **Run**. Ensuite le contenu de `supabase/seed.sql`, puis **Run**.
+Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `supabase/schema.sql` puis **Run**, puis celui de `supabase/seed.sql`, puis mettre à jour l'adresse et la clé dans `src/lib/supabase.ts`.
+
+### Reste à faire dans Supabase (supabase.com, projet `happy-fish`)
 5. **Authentication**, puis **Emails** (modèles d'e-mails) : dans les modèles **Magic Link** et **Confirm signup**, remplacer le corps par :
    ```html
    <h2>Ton code Happy Fish</h2>
    <p>Tape ce code dans l'app : <strong>{{ .Token }}</strong></p>
    ```
    Sans cette étape, l'e-mail contient un lien au lieu d'un code. Sur iPhone, ce lien s'ouvrirait dans Safari et l'app installée resterait déconnectée.
-6. **Authentication**, puis **URL Configuration** : **Site URL** = l'adresse de l'app sur Vercel (par exemple `https://happy-fish.vercel.app`).
+6. Facultatif : **Authentication**, puis **URL Configuration**, **Site URL** = l'adresse de l'app sur Vercel. Pas indispensable avec la connexion par code.
 
 ### Vos deux comptes
 7. Valentin ouvre l'adresse de l'app dans Safari, saisit son e-mail, tape le code reçu, donne son prénom et choisit **Créer notre duo**. L'app affiche un code à 6 caractères.
@@ -97,13 +98,13 @@ npm run build                # vérification complète
 | `src/lib/xp.ts` | Barème XP et niveaux (le même que dans la base) |
 | `supabase/schema.sql` | Tables, sécurité, règles |
 | `supabase/seed.sql` | Catégories et suggestions de départ |
-| `tests/db.test.ts` | 17 tests des règles |
+| `tests/db.test.ts` | 18 tests des règles |
 
 ## 7. Dépannage
 
 | Symptôme | Solution |
 |---|---|
-| « Configuration manquante » | Supabase pas encore connecté au projet Vercel, ou pas de redéploiement après la connexion |
+| « Configuration manquante » | Adresse ou clé Supabase absente de `src/lib/supabase.ts` |
 | L'e-mail contient un lien, pas un code | Étape 5 : modifier les deux modèles d'e-mail |
 | Pas d'e-mail reçu | Regarder les spams. Le service d'e-mail intégré à Supabase limite le nombre d'envois par heure : attendre un peu |
 | « Code inconnu » en rejoignant le duo | Vérifier le code dans Paramètres, sur le téléphone de celui qui a créé le duo |

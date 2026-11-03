@@ -160,6 +160,12 @@ describe('Happy Fish, règles de la base', () => {
     await expect(as(VAL, `insert into public.messages (couple_id, author_id, kind) values (public.my_couple(), auth.uid(), 'treat')`)).rejects.toThrow()
   })
 
+  it('les fonctions internes ne sont pas appelables depuis l’app', async () => {
+    const d = await today()
+    await expect(as(VAL, `select public.recompute_bonuses(auth.uid(), $1::date)`, [d])).rejects.toThrow(/permission/)
+    await expect(as(VAL, `select public.generate_goal_tasks(gen_random_uuid(), $1::date)`, [d])).rejects.toThrow(/permission/)
+  })
+
   it('friandise : +2 XP pour l’autre, 3 par jour au maximum', async () => {
     const before = await xpOf(JULIE)
     await as(VAL, `select public.send_treat()`)
