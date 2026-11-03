@@ -7,7 +7,7 @@ import { xpForMinutes } from '../lib/xp'
 import { canAct, tasksOfDay } from '../lib/tasks'
 import { burstFrom, celebrate } from '../lib/fx'
 import type { Task } from '../lib/types'
-import { CheckMark } from './ui'
+import { CheckMark, Flame } from './ui'
 
 export function useTaskActions() {
   const store = useStore()
@@ -15,12 +15,12 @@ export function useTaskActions() {
   return {
     toggle: async (task: Task) => {
       const ok = await run(() => supabase.rpc('toggle_task', { p_task: task.id }))
-      if (ok) await Promise.all([reloadTasks(), reload(['fish'])])
+      if (ok) await Promise.all([reloadTasks(), reload(['fish', 'streaks'])])
       return ok
     },
     move: async (task: Task, date: string, label?: string) => {
       const ok = await run(() => supabase.rpc('move_task', { p_task: task.id, p_date: date }), label || 'Déplacé')
-      if (ok) await Promise.all([reloadTasks(), reload(['fish'])])
+      if (ok) await Promise.all([reloadTasks(), reload(['fish', 'streaks'])])
       return ok
     },
     tomorrow: addDays(today, 1),
@@ -28,7 +28,7 @@ export function useTaskActions() {
 }
 
 export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: Task) => void; showOwner?: boolean }) {
-  const { userId, today, goalOf, categoryOf, nameOf, tasks } = useStore()
+  const { userId, today, goalOf, categoryOf, nameOf, tasks, streaks } = useStore()
   const actions = useTaskActions()
   const [pop, setPop] = useState(false)
   const goal = goalOf(task.goal_id)
@@ -37,6 +37,7 @@ export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: T
   const mine = canAct(task, userId)
   const done = Boolean(task.done_at)
   const future = task.date > today
+  const streak = goal.recurring ? streaks.find((x) => x.goal_id === goal.id)?.current_streak ?? 0 : 0
   const details = [cat?.name, `${goal.minutes} min`, goal.recurring ? 'chaque semaine' : null, task.note || goal.note ? 'une note' : null]
     .filter(Boolean)
     .join(', ')
@@ -68,7 +69,12 @@ export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: T
         {done && <CheckMark />}
       </button>
       <button type="button" className="task-main" onClick={() => onOpen(task)}>
-        <span className="task-title">{goal.title}</span>
+        <span className="task-title">
+          {goal.title}
+          {streak >= 2 && (
+            <span className="streak-badge" aria-label={`série de ${streak}`}><Flame size={12} />{streak}</span>
+          )}
+        </span>
         <span className="small">
           {details}
           {showOwner && task.owner_id === null && ', commun'}

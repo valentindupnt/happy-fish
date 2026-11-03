@@ -127,3 +127,31 @@ export interface Review {
   surprise_due: boolean
   surprise_received_at: string | null
 }
+
+export interface Streak { goal_id: string; current_streak: number; best_streak: number }
+
+export interface Challenge { id: string; created_by: string; title: string; archived: boolean; created_at: string }
+
+export interface ChallengeRoll {
+  id: string
+  week_start: string
+  challenge_id: string
+  title: string
+  rolled_by: string | null
+  rolled_at: string
+  done_at: string | null
+  done_by: string | null
+}
+
+export interface SurpriseIdea { id: string; created_by: string; title: string; created_at: string }
+
+export interface MonthRecap {
+  profile_id: string
+  done: number
+  minutes: number
+  xp: number
+  top_category: string | null
+  messages: number
+  treats: number
+  perfect_days: number
+}

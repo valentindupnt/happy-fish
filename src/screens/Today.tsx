@@ -7,7 +7,7 @@ import { MOOD_LABEL, moodOf } from '../lib/mood'
 import type { Task } from '../lib/types'
 import { Fish } from '../components/Fish'
 import { TaskRow } from '../components/TaskRow'
-import { Bar, Coin, Icon } from '../components/ui'
+import { Bar, Coin, Flame, Icon } from '../components/ui'
 import { WeekReview } from '../components/WeekReview'
 
 export function Today({ openTask, openAdd, goWeek, goSettings }: {
@@ -16,7 +16,7 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
   goWeek: () => void
   goSettings: () => void
 }) {
-  const { me, partner, couple, userId, today, tasks, fishOf, partnerName } = useStore()
+  const { me, partner, couple, userId, today, tasks, fishOf, partnerName, streaks, goals } = useStore()
   const [day, setDay] = useState(today)
   const [who, setWho] = useState<'me' | 'partner'>('me')
   if (!me) return null
@@ -30,6 +30,10 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
   const missed = missedThisWeek(tasks, today, userId)
   const days = weekDays(weekStart(today))
   const mood = moodOf(tasks, today, userId)
+  const mySeries = streaks
+    .map((st) => ({ st, goal: goals.find((g) => g.id === st.goal_id) }))
+    .filter((x) => x.goal && !x.goal.archived && (x.goal.owner_id === userId || x.goal.owner_id === null))
+    .sort((a, b) => b.st.current_streak - a.st.current_streak || b.st.best_streak - a.st.best_streak)
 
   return (
     <div className="screen">
@@ -113,6 +117,25 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
             <div style={{ marginTop: 10 }}><button type="button" className="btn small primary" onClick={() => openAdd(day)}>Ajouter un objectif</button></div>
           )}
         </div>
+      )}
+
+      {who === 'me' && mySeries.length > 0 && (
+        <section aria-label="Mes séries" className="card pad stack" style={{ gap: 8 }}>
+          <div className="row-between" style={{ alignItems: 'center' }}>
+            <h2 className="h2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Flame size={16} />Mes séries</h2>
+            <span className="meta">faits d’affilée</span>
+          </div>
+          {mySeries.map(({ st, goal }) => (
+            <div key={st.goal_id} className="row-between" style={{ alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{goal!.title}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <span className={`streak-count${st.current_streak >= 7 ? ' hot' : ''}`}>{st.current_streak}</span>
+                <span className="small">record {st.best_streak}</span>
+              </span>
+            </div>
+          ))}
+          <span className="small">Un sous-objectif reporté puis fait garde la série. Un raté la remet à zéro.</span>
+        </section>
       )}
 
       {who === 'me' && (

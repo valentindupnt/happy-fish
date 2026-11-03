@@ -309,3 +309,8 @@ button.bowl { background: none; border: none; }
 @media (prefers-reduced-motion: reduce) {
   .mood-happy, .mood-sad, .mood-sleep, .fish-tear, .fish-z, .fish-spark, .boop, .boop-heart { animation: none; }
 }
+
+/* Séries */
+.streak-badge { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: #FFE6D6; color: #A3361A; font-size: 11px; font-weight: 800; vertical-align: 2px; }
+.streak-count { min-width: 30px; text-align: center; font-family: var(--pixel); font-size: 11px; padding: 4px 6px; border-radius: 8px; background: #FFE6D6; color: #A3361A; }
+.streak-count.hot { background: #FF5E3A; color: #FFFFFF; }

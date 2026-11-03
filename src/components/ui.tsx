@@ -46,6 +46,20 @@ export function Coin({ size = 14 }: { size?: number }) {
   )
 }
 
+const FLAME = ['..f....', '.ff.f..', '.fffff.', 'ffyffff', 'fyyyfff', 'fyywyff', '.fyyyf.']
+
+/** Petite flamme pixel art pour les séries */
+export function Flame({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 7 7" shapeRendering="crispEdges" aria-hidden="true" style={{ flexShrink: 0 }}>
+      {FLAME.flatMap((row, y) => [...row].map((c, x) => {
+        const fill = c === 'f' ? '#FF5E3A' : c === 'y' ? '#FFC23D' : c === 'w' ? '#FFF1C9' : ''
+        return fill ? <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={fill} /> : null
+      }))}
+    </svg>
+  )
+}
+
 export function TreatIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true">

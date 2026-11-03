@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { supabase, errorText } from './supabase'
 import { addDays, todayParis, weekStart } from './dates'
-import type { Category, Couple, CoupleItem, FishStatus, ForceMessage, Goal, Message, Profile, Purchase, Review, ShopItem, Suggestion, Task, Wish } from './types'
+import type { Category, Challenge, ChallengeRoll, Couple, CoupleItem, FishStatus, ForceMessage, Goal, Message, Profile, Purchase, Review, ShopItem, Streak, Suggestion, SurpriseIdea, Task, Wish } from './types'
 
 interface State {
   loading: boolean
@@ -22,15 +22,21 @@ interface State {
   coupleItems: CoupleItem[]
   reviews: Review[]
   pot: number
+  streaks: Streak[]
+  challenges: Challenge[]
+  rolls: ChallengeRoll[]
+  surpriseIdeas: SurpriseIdea[]
 }
 
 const EMPTY: State = {
   loading: true, me: null, partner: null, couple: null, categories: [], suggestions: [],
   goals: [], tasks: [], wishes: [], messages: [], force: [], fish: [],
   shopItems: [], purchases: [], coupleItems: [], reviews: [], pot: 0,
+  streaks: [], challenges: [], rolls: [], surpriseIdeas: [],
 }
 
 type Part = 'profiles' | 'couple' | 'categories' | 'suggestions' | 'goals' | 'wishes' | 'messages' | 'force' | 'fish' | 'shop' | 'reviews'
+  | 'streaks' | 'challenges' | 'surprises'
 
 interface Toast { id: number; text: string; tone: 'info' | 'error' }
 
@@ -112,6 +118,15 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       return { shopItems, purchases, coupleItems, pot: pot ?? 0 }
     },
     reviews: async () => ({ reviews: await must<Review[]>(supabase.from('weekly_reviews').select('*').order('week_start', { ascending: false }).limit(20)) }),
+    streaks: async () => ({ streaks: (await must<Streak[]>(supabase.rpc('goal_streaks'))) || [] }),
+    challenges: async () => {
+      const [challenges, rolls] = await Promise.all([
+        must<Challenge[]>(supabase.from('challenges').select('*').eq('archived', false).order('created_at')),
+        must<ChallengeRoll[]>(supabase.from('challenge_rolls').select('*').order('week_start', { ascending: false }).limit(12)),
+      ])
+      return { challenges, rolls }
+    },
+    surprises: async () => ({ surpriseIdeas: await must<SurpriseIdea[]>(supabase.from('surprise_ideas').select('*').order('created_at')) }),
   }), [userId])
 
   const reload: Store['reload'] = useCallback(async (what) => {
@@ -150,6 +165,7 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       const parts = await Promise.all([
         loaders.couple(), loaders.categories(), loaders.suggestions(), loaders.goals(),
         loaders.wishes(), loaders.messages(), loaders.force(), loaders.fish(), loaders.shop(), loaders.reviews(),
+        loaders.streaks(), loaders.challenges(), loaders.surprises(),
       ])
       const tasks = await fetchTasks(range.current.from, range.current.to)
       setState(Object.assign({ ...EMPTY, loading: false, me, partner, tasks }, ...parts))
@@ -210,8 +226,9 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       timer = setTimeout(() => {
         const list = [...pending]
         pending.clear()
-        if (list.includes('tasks')) reloadTasks()
-        const others = list.filter((w) => w !== 'tasks') as Parameters<Store['reload']>[0]
+        if (list.includes('tasks')) { reloadTasks(); pending.add('streaks') }
+        const others = [...new Set([...list, ...pending])].filter((w) => w !== 'tasks') as Parameters<Store['reload']>[0]
+        pending.clear()
         if (others.length) reload(others)
       }, 300)
     }
@@ -224,6 +241,8 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'couples', filter: `id=eq.${coupleId}` }, () => { schedule('couple'); schedule('fish') })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pot_events', filter: `couple_id=eq.${coupleId}` }, () => { schedule('shop'); schedule('fish') })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_reviews', filter: `couple_id=eq.${coupleId}` }, () => schedule('reviews'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'challenges', filter: `couple_id=eq.${coupleId}` }, () => schedule('challenges'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'challenge_rolls', filter: `couple_id=eq.${coupleId}` }, () => schedule('challenges'))
       .subscribe()
     return () => { clearTimeout(timer); supabase.removeChannel(channel) }
   }, [coupleId, reload, reloadTasks])
