@@ -131,8 +131,52 @@ export function Settings({ onBack, openShop }: { onBack: () => void; openShop: (
           </span>
         )}
         <span className="small">Connecté avec {me.email}</span>
+        <PasswordChange />
         <button type="button" className="btn" onClick={() => supabase.auth.signOut()}>Se déconnecter</button>
       </section>
+    </div>
+  )
+}
+
+function PasswordChange() {
+  const { toast } = useStore()
+  const [open, setOpen] = useState(false)
+  const [pwd, setPwd] = useState('')
+  const [pwd2, setPwd2] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  if (!open) return <button type="button" className="btn" onClick={() => setOpen(true)}>Changer mon mot de passe</button>
+
+  const save = async () => {
+    if (pwd.length < 8) return setError('Choisis au moins 8 caractères')
+    if (pwd !== pwd2) return setError('Les deux mots de passe ne sont pas identiques')
+    setBusy(true)
+    const { error: e } = await supabase.auth.updateUser({ password: pwd })
+    setBusy(false)
+    if (e) {
+      setError(/different from the old/i.test(e.message) ? 'C’est déjà ton mot de passe actuel' : errorText(e))
+      return
+    }
+    toast('Mot de passe changé')
+    setOpen(false); setPwd(''); setPwd2(''); setError('')
+  }
+
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <div className="field">
+        <label htmlFor="pwd-new">Nouveau mot de passe</label>
+        <input id="pwd-new" className="input" type="password" autoComplete="new-password" value={pwd} onChange={(e) => { setPwd(e.target.value); setError('') }} />
+      </div>
+      <div className="field">
+        <label htmlFor="pwd-new2">Encore une fois</label>
+        <input id="pwd-new2" className="input" type="password" autoComplete="new-password" value={pwd2} onChange={(e) => { setPwd2(e.target.value); setError('') }} />
+      </div>
+      {error && <p role="alert" style={{ margin: 0, color: '#A3201A', fontSize: 13, fontWeight: 700 }}>{error}</p>}
+      <div className="wrap">
+        <button type="button" className="btn primary" disabled={busy} onClick={save}>Enregistrer</button>
+        <button type="button" className="btn" onClick={() => { setOpen(false); setError('') }}>Annuler</button>
+      </div>
     </div>
   )
 }

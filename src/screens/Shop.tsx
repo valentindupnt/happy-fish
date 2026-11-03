@@ -94,7 +94,7 @@ export function Shop({ onBack }: { onBack: () => void }) {
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.45, color: 'var(--cream-ink)' }}>
           {aquarium
             ? 'Vos pièces communes, pour décorer le grand aquarium.'
-            : 'Indispensable pour passer au stade Moyen. Il s’achète tout seul dès que la cagnotte atteint 120 pièces.'}
+            : 'Indispensable pour passer au stade Moyen. Il s’achète tout seul dès que la cagnotte atteint 120 pièces. Même au niveau 6, l’XP en réserve continue de vous rapporter des pièces.'}
         </p>
         <div className="wrap">
           {[10, 25].map((n) => (
@@ -108,7 +108,7 @@ export function Shop({ onBack }: { onBack: () => void }) {
         </div>
       </section>
 
-      {SECTIONS.map((sec) => {
+      {SECTIONS.filter((sec) => !(aquarium && sec.kind === 'bowl')).map((sec) => {
         const items = [...freeItems(sec.kind), ...shopItems.filter((i) => i.kind === sec.kind)]
         if (!items.length) return null
         return (
