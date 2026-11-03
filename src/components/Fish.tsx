@@ -1,4 +1,7 @@
+import { useState } from 'react'
+import type { ReactNode } from 'react'
 import type { FishColor } from '../lib/types'
+import type { Mood } from '../lib/mood'
 
 // Sprite 18 × 12 : o contour, b corps, l ventre, f nageoires, h reflet, w blanc de l'œil, k pupille
 const SPRITE = [
@@ -74,10 +77,13 @@ function runsFor(color: FishColor): Run[] {
 
 const cache = new Map<FishColor, Run[]>()
 
-/** Le poisson pixel art (avec son accessoire éventuel). Hauteur = largeur × 16/18. */
-export function Fish({ color, width = 54, flip = false, label, hat }: { color: FishColor; width?: number; flip?: boolean; label?: string; hat?: string | null }) {
+/** Le poisson pixel art (avec son accessoire et son humeur). Hauteur = largeur × 16/18. */
+export function Fish({ color, width = 54, flip = false, label, hat, mood = 'normal' }: {
+  color: FishColor; width?: number; flip?: boolean; label?: string; hat?: string | null; mood?: Mood
+}) {
   if (!cache.has(color)) cache.set(color, runsFor(color))
   const runs = cache.get(color)!
+  const body = (PALETTES[color] || PALETTES.corail).b
   return (
     <svg
       viewBox="0 -4 18 16"
@@ -87,10 +93,58 @@ export function Fish({ color, width = 54, flip = false, label, hat }: { color: F
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
-      style={{ transform: flip ? 'scaleX(-1)' : undefined, display: 'block' }}
+      style={{ transform: flip ? 'scaleX(-1)' : undefined, display: 'block', overflow: 'visible' }}
     >
-      {runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={r.c} />)}
-      {hat && HATS[hat]?.map(([x, y, w, h, c], i) => <rect key={`h${i}`} x={x} y={y} width={w} height={h} fill={c} />)}
+      <g className={`fish-body mood-${mood}`}>
+        {runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={r.c} />)}
+        {mood === 'sleep' && (
+          <>
+            <rect x={12} y={4} width={2} height={2} fill={body} />
+            <rect x={12} y={5} width={2} height={1} fill="#1B1B3A" />
+          </>
+        )}
+        {mood === 'happy' && (
+          <>
+            <rect x={12} y={4} width={2} height={1} fill="#1B1B3A" />
+            <rect x={12} y={5} width={2} height={1} fill={body} />
+            <rect x={11} y={5} width={1} height={1} fill="#1B1B3A" />
+          </>
+        )}
+        {mood === 'sad' && <rect className="fish-tear" x={13} y={6} width={1} height={2} fill="#8DD3FF" />}
+        {hat && HATS[hat]?.map(([x, y, w, h, c], i) => <rect key={`h${i}`} x={x} y={y} width={w} height={h} fill={c} />)}
+      </g>
+      {mood === 'sleep' && (
+        <g className="fish-z" fill="#FFFFFF">
+          <rect x={15} y={-4} width={3} height={1} /><rect x={16} y={-3} width={1} height={1} /><rect x={15} y={-2} width={3} height={1} />
+          <rect x={13} y={-1} width={2} height={1} opacity={0.7} />
+        </g>
+      )}
+      {mood === 'happy' && (
+        <g className="fish-spark" fill="#FFE08F">
+          <rect x={1} y={-3} width={3} height={1} /><rect x={2} y={-4} width={1} height={3} />
+          <rect x={16} y={9} width={2} height={1} opacity={0.8} />
+        </g>
+      )}
+    </svg>
+  )
+}
+
+/** Un poisson qui réagit quand on le touche : petit saut et un cœur */
+export function useBoop(): [boolean, () => void] {
+  const [boop, setBoop] = useState(false)
+  const trigger = () => {
+    if (boop) return
+    setBoop(true)
+    window.setTimeout(() => setBoop(false), 900)
+  }
+  return [boop, trigger]
+}
+
+function Heart() {
+  return (
+    <svg className="boop-heart" viewBox="0 0 7 6" width={16} height={14} shapeRendering="crispEdges" aria-hidden="true">
+      {['.rr.rr.', 'rrrrrrr', 'rrrrrrr', '.rrrrr.', '..rrr..', '...r...'].flatMap((row, y) =>
+        [...row].map((c, x) => (c === 'r' ? <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="#FF5E8A" /> : null)))}
     </svg>
   )
 }
@@ -165,11 +219,12 @@ export function ItemPreview({ kind, id, color }: { kind: string; id: string; col
 }
 
 /** Petit bocal pixel art avec un poisson qui nage */
-export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = 'rond' }: {
-  color: FishColor; scale?: number; name: string; flip?: boolean; hat?: string | null; pet?: string | null; style?: string
+export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = 'rond', mood = 'normal' }: {
+  color: FishColor; scale?: number; name: string; flip?: boolean; hat?: string | null; pet?: string | null; style?: string; mood?: Mood
 }) {
+  const [boop, trigger] = useBoop()
   return (
-    <div className={`bowl bowl-${style}`} aria-label={`${name} dans son bocal`} role="img">
+    <button type="button" className={`bowl bowl-${style}${mood === 'sleep' ? ' sleepy' : ''}`} aria-label={`${name} dans son bocal, toucher pour lui dire coucou`} onClick={trigger}>
       <div className="bowl-rim" />
       <div className="bowl-glass">
         <div className="bowl-water" />
@@ -180,19 +235,23 @@ export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = '
         <div className="bowl-bubble bowl-bubble-b" />
         {pet && <div className="bowl-pet"><Pet kind={pet} width={22} /></div>}
         <div className={flip ? 'bowl-fish swim-rev' : 'bowl-fish swim'}>
-          <Fish color={color} width={Math.round(48 * scale)} hat={hat} />
+          <div className={boop ? 'boop' : undefined}>
+            <Fish color={color} width={Math.round(48 * scale)} hat={hat} mood={boop ? 'happy' : mood} />
+          </div>
+          {boop && <Heart />}
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 
-export interface TankFish { color: FishColor; hat?: string | null; pet?: string | null; scale: number; name: string }
+export interface TankFish { color: FishColor; hat?: string | null; pet?: string | null; scale: number; name: string; mood?: Mood }
 
 /** Le grand aquarium commun */
-export function Tank({ fishes, decor }: { fishes: TankFish[]; decor: string[] }) {
+export function Tank({ fishes, decor, children }: { fishes: TankFish[]; decor: string[]; children?: ReactNode }) {
+  const [boop, trigger] = useBoop()
   return (
-    <div className="tank" role="img" aria-label={`Grand aquarium avec ${fishes.map((f) => f.name).join(' et ')}`}>
+    <button type="button" className="tank" aria-label={`Grand aquarium avec ${fishes.map((f) => f.name).join(' et ')}, toucher pour leur dire coucou`} onClick={trigger}>
       <div className="tank-water" />
       <div className="tank-sand" />
       <div className="tank-decor">
@@ -204,10 +263,14 @@ export function Tank({ fishes, decor }: { fishes: TankFish[]; decor: string[] })
       <div className="bowl-bubble bowl-bubble-a" />
       <div className="bowl-bubble bowl-bubble-b" />
       {fishes.map((f, i) => (
-        <div key={f.name} className={`tank-fish tank-fish-${i}`}>
-          <Fish color={f.color} hat={f.hat} width={Math.round(46 * f.scale)} />
+        <div key={f.name} className={`tank-fish tank-fish-${i}${f.mood === 'sleep' ? ' sleepy' : ''}`}>
+          <div className={boop ? 'boop' : undefined}>
+            <Fish color={f.color} hat={f.hat} width={Math.round(46 * f.scale)} mood={boop ? 'happy' : f.mood} />
+          </div>
+          {boop && <Heart />}
         </div>
       ))}
-    </div>
+      {children}
+    </button>
   )
 }

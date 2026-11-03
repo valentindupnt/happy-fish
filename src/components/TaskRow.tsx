@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import type React from 'react'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { addDays } from '../lib/dates'
 import { xpForMinutes } from '../lib/xp'
-import { canAct } from '../lib/tasks'
+import { canAct, tasksOfDay } from '../lib/tasks'
+import { burstFrom, celebrate } from '../lib/fx'
 import type { Task } from '../lib/types'
 import { CheckMark } from './ui'
 
@@ -26,7 +28,7 @@ export function useTaskActions() {
 }
 
 export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: Task) => void; showOwner?: boolean }) {
-  const { userId, today, goalOf, categoryOf, nameOf } = useStore()
+  const { userId, today, goalOf, categoryOf, nameOf, tasks } = useStore()
   const actions = useTaskActions()
   const [pop, setPop] = useState(false)
   const goal = goalOf(task.goal_id)
@@ -39,12 +41,18 @@ export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: T
     .filter(Boolean)
     .join(', ')
 
-  const onCheck = async () => {
+  const onCheck = async (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!mine) return onOpen(task)
     if (future && !done) return onOpen(task)
+    const btn = e.currentTarget
     setPop(true)
     setTimeout(() => setPop(false), 400)
-    await actions.toggle(task)
+    // La dernière coche du jour : grande pluie de bulles
+    const lastOfDay = !done && task.date === today
+      && tasksOfDay(tasks, today, userId).filter((t) => !t.done_at && t.id !== task.id).length === 0
+    if (!done) burstFrom(btn)
+    const ok = await actions.toggle(task)
+    if (ok && lastOfDay) celebrate()
   }
 
   return (

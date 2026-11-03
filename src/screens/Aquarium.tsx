@@ -1,18 +1,19 @@
 import { useStore } from '../lib/store'
 import { LEVEL_CAP_WITHOUT_AQUARIUM, levelProgress, stadeName, stadeOf } from '../lib/xp'
 import type { Profile } from '../lib/types'
+import { MOOD_LABEL, moodOf } from '../lib/mood'
 import { Bowl, PALETTES, Tank } from '../components/Fish'
 import { Bar, Coin, Icon } from '../components/ui'
 
 function FishInfo({ p, owner }: { p: Profile; owner: string }) {
-  const { fishOf, couple } = useStore()
+  const { fishOf, couple, tasks, today } = useStore()
   const f = fishOf(p.id)
   const prog = levelProgress(f.xp, f.level)
   const capped = !couple?.aquarium_bought && f.level_uncapped > LEVEL_CAP_WITHOUT_AQUARIUM
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
       <span style={{ fontSize: 15, fontWeight: 800 }}>{p.fish_name}, à {owner}</span>
-      <span className="small" style={{ fontWeight: 700 }}>{stadeName(f.level)}, niveau {f.level}</span>
+      <span className="small" style={{ fontWeight: 700 }}>{stadeName(f.level)}, niveau {f.level}, {MOOD_LABEL[moodOf(tasks, today, p.id)]}</span>
       <Bar ratio={capped ? 1 : prog.ratio} color={PALETTES[p.fish_color]?.b} thin />
       <span className="small">{capped ? `${f.xp} XP, en réserve` : `${prog.into} / ${prog.needed} XP`}</span>
     </div>
@@ -22,7 +23,7 @@ function FishInfo({ p, owner }: { p: Profile; owner: string }) {
 const scaleOf = (level: number) => 1 + (stadeOf(level) - 1) * 0.3
 
 export function Aquarium({ openShop }: { openShop: () => void }) {
-  const { me, partner, partnerName, fishOf, userId, couple, coupleItems, pot } = useStore()
+  const { me, partner, partnerName, fishOf, userId, couple, coupleItems, pot, tasks, today } = useStore()
   if (!me) return null
   const myFish = fishOf(userId)
   const aquarium = Boolean(couple?.aquarium_bought)
@@ -41,20 +42,21 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
       <section aria-label="Vos poissons" className="card pad stack" style={{ gap: 14 }}>
         {aquarium ? (
           <Tank
-            fishes={owners.map(({ p }) => ({ color: p.fish_color, hat: p.fish_hat, pet: p.fish_pet, scale: scaleOf(fishOf(p.id).level), name: p.fish_name }))}
+            fishes={owners.map(({ p }) => ({ color: p.fish_color, hat: p.fish_hat, pet: p.fish_pet, scale: scaleOf(fishOf(p.id).level), name: p.fish_name, mood: moodOf(tasks, today, p.id) }))}
             decor={coupleItems.map((c) => c.item_id)}
           />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: partner ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: 14 }}>
             {owners.map(({ p }, i) => (
               <Bowl key={p.id} color={p.fish_color} hat={p.fish_hat} pet={p.fish_pet} style={p.bowl_style}
-                scale={scaleOf(fishOf(p.id).level)} name={p.fish_name} flip={i === 1} />
+                scale={scaleOf(fishOf(p.id).level)} name={p.fish_name} flip={i === 1} mood={moodOf(tasks, today, p.id)} />
             ))}
           </div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: partner ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: 14 }}>
           {owners.map(({ p, owner }) => <FishInfo key={p.id} p={p} owner={owner} />)}
         </div>
+        <span className="small" style={{ textAlign: 'center' }}>Touche {aquarium ? 'l’aquarium' : 'un bocal'} pour dire coucou.</span>
       </section>
 
       {!aquarium ? (

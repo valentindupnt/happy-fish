@@ -3,6 +3,7 @@ import { useStore } from '../lib/store'
 import { DAY_LETTERS, dayName, dayNumber, longDay, weekDays, weekStart } from '../lib/dates'
 import { LEVEL_CAP_WITHOUT_AQUARIUM, levelProgress, stadeName } from '../lib/xp'
 import { missedThisWeek, tasksOfDay } from '../lib/tasks'
+import { MOOD_LABEL, moodOf } from '../lib/mood'
 import type { Task } from '../lib/types'
 import { Fish } from '../components/Fish'
 import { TaskRow } from '../components/TaskRow'
@@ -28,6 +29,7 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
   const done = list.filter((t) => t.done_at).length
   const missed = missedThisWeek(tasks, today, userId)
   const days = weekDays(weekStart(today))
+  const mood = moodOf(tasks, today, userId)
 
   return (
     <div className="screen">
@@ -43,7 +45,7 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
       </header>
 
       <div className="card xp-card">
-        <div className="fish-tile"><Fish color={me.fish_color} hat={me.fish_hat} width={39} label={me.fish_name} /></div>
+        <div className="fish-tile"><Fish color={me.fish_color} hat={me.fish_hat} width={39} mood={mood} label={`${me.fish_name} ${MOOD_LABEL[mood]}`} /></div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div className="row-between">
             <span style={{ fontSize: 15, fontWeight: 800 }}>{me.fish_name}, {stadeName(fish.level).toLowerCase()} niv. {fish.level}</span>
