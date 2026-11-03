@@ -42,9 +42,15 @@ export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; o
       </button>
 
       <div className="row-between" style={{ marginTop: 6 }}>
-        <h2 className="h2">Nos envies</h2>
-        <span className="meta">{wishes.length} envie{wishes.length > 1 ? 's' : ''}</span>
+        <h2 className="h2">Nos envies{wishes.length ? ` (${wishes.length})` : ''}</h2>
+        <button type="button" className="btn small primary" onClick={() => setEditing('new')}>
+          <Icon name="plus" size={16} stroke={3} />Ajouter
+        </button>
       </div>
+
+      {!wishes.length && (
+        <div className="card empty">Notez ici vos idées de sorties, voyages ou cadeaux, avec un lien si besoin.</div>
+      )}
 
       {wishes.map((w) => {
         const href = safeLink(w.link)
@@ -74,9 +80,11 @@ export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; o
         )
       })}
 
-      <button type="button" className="btn" style={{ borderStyle: 'dashed' }} onClick={() => setEditing('new')}>
-        <Icon name="plus" size={18} />Ajouter une envie
-      </button>
+      {wishes.length > 0 && (
+        <button type="button" className="btn" style={{ borderStyle: 'dashed' }} onClick={() => setEditing('new')}>
+          <Icon name="plus" size={18} />Ajouter une envie
+        </button>
+      )}
 
       {editing && (
         <WishSheet
