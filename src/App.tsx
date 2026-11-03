@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { configured, supabase } from './lib/supabase'
 import { StoreProvider, useStore } from './lib/store'
@@ -32,16 +32,16 @@ export default function App() {
 
   if (!configured) {
     return (
-      <div className="app"><div className="screen no-tabs" style={{ justifyContent: 'center' }}>
+      <div className="app"><div className="scroll"><div className="screen no-tabs" style={{ justifyContent: 'center' }}>
         <div className="card pad stack">
           <h1 className="h2">Configuration manquante</h1>
           <p style={{ margin: 0, fontSize: 14 }}>L’adresse et la clé publique de Supabase ne sont pas renseignées. Voir GUIDE.md, étape Supabase.</p>
         </div>
-      </div></div>
+      </div></div></div>
     )
   }
   if (session === undefined) return <Splash />
-  if (!session) return <div className="app"><Login /></div>
+  if (!session) return <div className="app"><div className="scroll"><Login /></div></div>
 
   return (
     <StoreProvider key={session.user.id} userId={session.user.id}>
@@ -66,11 +66,12 @@ function Main() {
   const [openTaskItem, setOpenTaskItem] = useState<Task | null>(null)
   const [chatRef, setChatRef] = useState<string | null>(null)
   const [seenChat, setSeenChat] = useState(() => localStorageGet('hf-seen-chat'))
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const openTask = useCallback((t: Task) => setOpenTaskItem(t), [])
   const openAdd = useCallback((day: string) => setAdding({ day }), [])
 
-  useEffect(() => { window.scrollTo(0, 0) }, [tab, view])
+  useEffect(() => { scrollRef.current?.scrollTo(0, 0) }, [tab, view])
   useEffect(() => {
     if (tab === 'chat' && view === 'tabs' && messages.length) {
       const last = messages[messages.length - 1].created_at
@@ -80,7 +81,7 @@ function Main() {
   }, [tab, view, messages])
 
   if (loading) return <Splash />
-  if (!me?.couple_id) return <Onboarding />
+  if (!me?.couple_id) return <div className="scroll"><Onboarding /></div>
 
   const unread = messages.filter((m) => m.author_id !== userId && m.created_at > (seenChat || '') && dateOfTimestamp(m.created_at) >= addDaysSafe(today)).length
 
@@ -92,9 +93,10 @@ function Main() {
   else if (tab === 'chat') content = <Chat refTaskId={chatRef} clearRef={() => setChatRef(null)} />
   else content = <Aquarium />
 
+  const isChat = view === 'tabs' && tab === 'chat'
   return (
     <>
-      {content}
+      <div ref={scrollRef} className={isChat ? 'scroll fixed' : 'scroll'}>{content}</div>
       {view !== 'settings' && (
         <nav className="tabs" aria-label="Navigation">
           <div className="tabs-inner">

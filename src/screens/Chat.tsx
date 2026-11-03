@@ -51,8 +51,8 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
 
   let lastDay = ''
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', paddingBottom: 'calc(76px + var(--safe-bottom))' }}>
-      <header className="head-row" style={{ padding: 'calc(16px + var(--safe-top)) 20px 14px', background: 'var(--card)', borderBottom: '2px solid var(--ink)', position: 'sticky', top: 0, zIndex: 5 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <header className="head-row" style={{ padding: 'calc(16px + var(--safe-top)) 20px 14px', background: 'var(--card)', borderBottom: '2px solid var(--ink)', flexShrink: 0 }}>
         <div className="fish-tile" style={{ width: 48, height: 40, border: '2px solid var(--ink)' }}>
           {partner && <Fish color={partner.fish_color} width={34} label={`Poisson de ${partnerName}`} />}
         </div>
@@ -64,7 +64,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
         </div>
       </header>
 
-      <div className="chat" aria-live="polite">
+      <div className="chat" aria-live="polite" style={{ minHeight: 0 }}>
         {messages.length === 0 && <div className="empty">Envoie le premier petit mot à {partnerName}.</div>}
         {messages.map((m) => {
           const day = dateOfTimestamp(m.created_at)
@@ -93,7 +93,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
       </div>
 
       {!partner ? (
-        <div className="composer" style={{ bottom: 'calc(76px + var(--safe-bottom))' }}>
+        <div className="composer">
           <div className="card pad cream stack" style={{ gap: 6 }}>
             <span className="h2" style={{ fontSize: 15 }}>Les petits mots s’ouvrent quand ton duo t’a rejoint</span>
             <span style={{ fontSize: 14, fontWeight: 600 }}>
@@ -102,7 +102,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
           </div>
         </div>
       ) : (
-      <div className="composer" style={{ bottom: 'calc(76px + var(--safe-bottom))' }}>
+      <div className="composer">
         {refTask && (
           <div className="row-between" style={{ alignItems: 'center' }}>
             <span className="ref" style={{ margin: 0 }}>Sur l’objectif : {goalOf(refTask.goal_id)?.title}</span>
