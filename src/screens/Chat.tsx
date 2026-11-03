@@ -92,17 +92,14 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
         <div ref={endRef} />
       </div>
 
-      {!partner ? (
-        <div className="composer">
-          <div className="card pad cream stack" style={{ gap: 6 }}>
-            <span className="h2" style={{ fontSize: 15 }}>Les petits mots s’ouvrent quand ton duo t’a rejoint</span>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>
-              Donne ce code à rentrer dans l’app : <strong style={{ fontFamily: 'var(--pixel)', fontSize: 13 }}>{couple?.invite_code}</strong>
-            </span>
-          </div>
-        </div>
-      ) : (
       <div className="composer">
+        {!partner && (
+          <span className="small" style={{ fontWeight: 700 }}>
+            {me?.partner_nickname || 'Ton duo'} verra tes mots en rejoignant votre duo avec le code{' '}
+            <strong style={{ fontFamily: 'var(--pixel)', fontSize: 11 }}>{couple?.invite_code}</strong>.
+            Les bulles et friandises s’ouvriront à ce moment-là.
+          </span>
+        )}
         {refTask && (
           <div className="row-between" style={{ alignItems: 'center' }}>
             <span className="ref" style={{ margin: 0 }}>Sur l’objectif : {goalOf(refTask.goal_id)?.title}</span>
@@ -112,7 +109,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
         {force.length > 0 && (
           <div className="wrap">
             {force.map((f) => (
-              <button key={f.id} type="button" className="tag" disabled={!partner || sending} onClick={() => send(f.body)}>{f.body}</button>
+              <button key={f.id} type="button" className="tag" disabled={sending} onClick={() => send(f.body)}>{f.body}</button>
             ))}
           </div>
         )}
@@ -132,14 +129,12 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
             placeholder={me ? 'Un petit mot…' : ''}
             value={text}
             maxLength={1000}
-            disabled={!partner}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(text) } }}
           />
-          <button type="button" className="icon-btn" style={{ background: 'var(--orange)' }} aria-label="Envoyer" disabled={!text.trim() || sending || !partner} onClick={() => send(text)}><Icon name="send" size={20} stroke={2.6} /></button>
+          <button type="button" className="icon-btn" style={{ background: 'var(--orange)' }} aria-label="Envoyer" disabled={!text.trim() || sending} onClick={() => send(text)}><Icon name="send" size={20} stroke={2.6} /></button>
         </div>
       </div>
-      )}
     </div>
   )
 }
