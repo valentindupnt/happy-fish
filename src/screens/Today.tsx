@@ -4,11 +4,13 @@ import { DAY_LETTERS, dayName, dayNumber, longDay, weekDays, weekStart } from '.
 import { LEVEL_CAP_WITHOUT_AQUARIUM, levelProgress, stadeName } from '../lib/xp'
 import { missedThisWeek, tasksOfDay } from '../lib/tasks'
 import { MOOD_LABEL, moodOf } from '../lib/mood'
+import { seasonalHat, seasonOf } from '../lib/season'
 import type { Task } from '../lib/types'
 import { Fish } from '../components/Fish'
 import { TaskRow } from '../components/TaskRow'
 import { Bar, Coin, Flame, Icon } from '../components/ui'
 import { WeekReview } from '../components/WeekReview'
+import { MonthRecapSheet, monthName, previousMonth } from '../components/MonthRecap'
 
 export function Today({ openTask, openAdd, goWeek, goSettings }: {
   openTask: (t: Task) => void
@@ -19,6 +21,7 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
   const { me, partner, couple, userId, today, tasks, fishOf, partnerName, streaks, goals } = useStore()
   const [day, setDay] = useState(today)
   const [who, setWho] = useState<'me' | 'partner'>('me')
+  const [recap, setRecap] = useState(false)
   if (!me) return null
 
   const fish = fishOf(userId)
@@ -49,7 +52,7 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
       </header>
 
       <div className="card xp-card">
-        <div className="fish-tile"><Fish color={me.fish_color} hat={me.fish_hat} width={39} mood={mood} label={`${me.fish_name} ${MOOD_LABEL[mood]}`} /></div>
+        <div className="fish-tile"><Fish color={me.fish_color} hat={seasonalHat(me.fish_hat, seasonOf(today))} width={39} mood={mood} label={`${me.fish_name} ${MOOD_LABEL[mood]}`} /></div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div className="row-between">
             <span style={{ fontSize: 15, fontWeight: 800 }}>{me.fish_name}, {stadeName(fish.level).toLowerCase()} niv. {fish.level}</span>
@@ -61,6 +64,14 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
       </div>
 
       <WeekReview />
+
+      {Number(today.slice(8, 10)) <= 5 && (
+        <section aria-label="Récap du mois" className="card pad stack" style={{ gap: 8, background: '#E9F0FF' }}>
+          <span className="h2" style={{ fontSize: 15 }}>Votre récap {/^[aeiou]/.test(monthName(previousMonth(today))) ? 'd’' : 'de '}{monthName(previousMonth(today))} est prêt</span>
+          <div><button type="button" className="btn small primary" onClick={() => setRecap(true)}>Le voir</button></div>
+        </section>
+      )}
+      {recap && <MonthRecapSheet month={previousMonth(today)} onClose={() => setRecap(false)} />}
 
       {!partner && couple && (
         <div className="card pad cream stack">

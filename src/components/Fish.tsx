@@ -41,6 +41,7 @@ const HATS: Record<string, Px[]> = {
   lunettes: [[9, 4, 2, 1, '#1B1B3A'], [11, 4, 4, 2, '#1B1B3A'], [12, 4, 2, 1, '#8DD3FF']],
   casquette: [[9, -1, 3, 1, '#3F7DE8'], [8, 0, 5, 2, '#3F7DE8'], [13, 1, 3, 1, '#1B4F8C'], [10, 0, 1, 1, '#FFFFFF']],
   pirate: [[9, -2, 4, 2, '#1B1B3A'], [7, 0, 8, 2, '#1B1B3A'], [10, 0, 2, 1, '#FFFFFF']],
+  noel: [[8, 1, 7, 1, '#FFFFFF'], [9, -1, 5, 2, '#E0304E'], [10, -2, 3, 1, '#E0304E'], [7, -2, 2, 1, '#E0304E'], [6, -2, 1, 1, '#FFFFFF']],
   couronne: [[8, -2, 1, 2, '#E8B92E'], [10, -2, 2, 2, '#E8B92E'], [13, -2, 1, 2, '#E8B92E'], [8, 0, 6, 2, '#E8B92E'], [10, 0, 2, 1, '#E0304E']],
 }
 
@@ -195,6 +196,10 @@ const DECOR: Record<string, { rows: string[]; colors: Record<string, string> }> 
     rows: ['.bbbbbbbb.', 'bggggggggb', 'bbbbyybbbb', 'bnnnyynnnb', 'bnnnnnnnnb', 'bbbbbbbbbb'],
     colors: { b: '#6B3E1E', g: '#F2C66D', y: '#E8B92E', n: '#8B5A2B' },
   },
+  sapin: {
+    rows: ['....y....', '...ggg...', '..gRgbg..', '...ggg...', '..ggyRg..', '.gbgggRg.', '..ggggg..', '.gRggbggg', 'ggggyggRg', '....t....', '....t....'],
+    colors: { g: '#1E9E57', y: '#FFE08F', R: '#E0304E', b: '#4D8EEA', t: '#6B3E1E' },
+  },
   chateau: {
     rows: ['g.g....g.g', 'ggg....ggg', 'ggg.gg.ggg', 'gggggggggg', 'ggggkkgggg', 'gggkkkkggg', 'gggkkkkggg'],
     colors: { g: '#A7B1C2', k: '#1B1B3A' },
@@ -218,9 +223,20 @@ export function ItemPreview({ kind, id, color }: { kind: string; id: string; col
   )
 }
 
+/** Flocons qui tombent (décor de Noël) */
+export function Snow({ count = 7 }: { count?: number }) {
+  return (
+    <div className="snow" aria-hidden="true">
+      {Array.from({ length: count }, (_, i) => (
+        <span key={i} style={{ left: `${(i * 97) % 100}%`, animationDelay: `${(i * 1.3) % 6}s`, animationDuration: `${5 + (i % 3) * 1.5}s` }} />
+      ))}
+    </div>
+  )
+}
+
 /** Petit bocal pixel art avec un poisson qui nage */
-export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = 'rond', mood = 'normal' }: {
-  color: FishColor; scale?: number; name: string; flip?: boolean; hat?: string | null; pet?: string | null; style?: string; mood?: Mood
+export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = 'rond', mood = 'normal', noel = false }: {
+  color: FishColor; scale?: number; name: string; flip?: boolean; hat?: string | null; pet?: string | null; style?: string; mood?: Mood; noel?: boolean
 }) {
   const [boop, trigger] = useBoop()
   return (
@@ -229,8 +245,9 @@ export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = '
       <div className="bowl-glass">
         <div className="bowl-water" />
         <div className="bowl-sand" />
-        <div className="bowl-plant bowl-plant-a" />
+        {noel ? <div className="bowl-sapin"><Decor kind="sapin" width={22} /></div> : <div className="bowl-plant bowl-plant-a" />}
         <div className="bowl-plant bowl-plant-b" />
+        {noel && <Snow count={5} />}
         <div className="bowl-bubble bowl-bubble-a" />
         <div className="bowl-bubble bowl-bubble-b" />
         {pet && <div className="bowl-pet"><Pet kind={pet} width={22} /></div>}
@@ -248,15 +265,17 @@ export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = '
 export interface TankFish { color: FishColor; hat?: string | null; pet?: string | null; scale: number; name: string; mood?: Mood }
 
 /** Le grand aquarium commun */
-export function Tank({ fishes, decor, children }: { fishes: TankFish[]; decor: string[]; children?: ReactNode }) {
+export function Tank({ fishes, decor, children, noel = false }: { fishes: TankFish[]; decor: string[]; children?: ReactNode; noel?: boolean }) {
   const [boop, trigger] = useBoop()
   return (
     <button type="button" className="tank" aria-label={`Grand aquarium avec ${fishes.map((f) => f.name).join(' et ')}, toucher pour leur dire coucou`} onClick={trigger}>
       <div className="tank-water" />
       <div className="tank-sand" />
       <div className="tank-decor">
-        {decor.map((d) => <Decor key={d} kind={d} width={d === 'plante' ? 34 : 40} />)}
+        {(noel ? [...decor, 'sapin'] : decor).map((d) => <Decor key={d} kind={d} width={d === 'plante' ? 34 : d === 'sapin' ? 38 : 40} />)}
       </div>
+      {noel && <Snow count={10} />}
+      {noel && <div className="tank-garland" aria-hidden="true" />}
       <div className="tank-pets">
         {fishes.filter((f) => f.pet).map((f) => <Pet key={f.name} kind={f.pet!} width={26} />)}
       </div>

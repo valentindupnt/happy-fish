@@ -370,3 +370,23 @@ button.bowl { background: none; border: none; }
   .dice-fish.throwing, .dice-die.tossed, .die.rolling { animation: none; }
   .wheel { transition-duration: 0.4s; }
 }
+
+/* Noël */
+.snow { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
+.snow > span { position: absolute; top: -6px; width: 4px; height: 4px; background: #FFFFFF; box-shadow: 0 0 0 1px rgba(27, 27, 58, 0.15); animation: snowfall 6s linear infinite; }
+@keyframes snowfall { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: 1; } 50% { transform: translate(6px, 55cqh); } 100% { transform: translate(-4px, 110cqh); opacity: 0.2; } }
+.bowl-glass, .tank { container-type: size; }
+.bowl-sapin { position: absolute; bottom: 12%; left: 12%; }
+.tank-garland { position: absolute; left: 0; right: 0; top: 10%; height: 8px; z-index: 2;
+  background: repeating-linear-gradient(90deg, #E0304E 0 8px, #2ECC71 8px 16px, #FFE08F 16px 24px, #4D8EEA 24px 32px); opacity: 0.9; animation: twinkle 1.4s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) { .snow > span, .tank-garland { animation: none; } }
+
+/* Récap du mois */
+.recap-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0; }
+.recap-fishes { display: flex; gap: 18px; }
+.recap-big { font-family: var(--pixel); font-size: 22px; color: var(--orange-ink); }
+.recap-grid { display: grid; gap: 8px 10px; align-items: center; }
+.recap-head { font-size: 13px; font-weight: 800; text-align: center; }
+.recap-label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.recap-val { font-size: 14px; font-weight: 600; text-align: center; padding: 6px 4px; border-radius: 8px; background: var(--card); border: 2px solid var(--line); }
+.recap-val.win { font-weight: 900; border-color: var(--orange); background: #FFF1E0; }

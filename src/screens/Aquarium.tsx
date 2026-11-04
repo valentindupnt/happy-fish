@@ -2,8 +2,11 @@ import { useStore } from '../lib/store'
 import { LEVEL_CAP_WITHOUT_AQUARIUM, levelProgress, stadeName, stadeOf } from '../lib/xp'
 import type { Profile } from '../lib/types'
 import { MOOD_LABEL, moodOf } from '../lib/mood'
+import { seasonalHat, seasonOf } from '../lib/season'
 import { Bowl, PALETTES, Tank } from '../components/Fish'
 import { Bar, Coin, Icon } from '../components/ui'
+import { useState } from 'react'
+import { MonthRecapSheet, monthName } from '../components/MonthRecap'
 
 function FishInfo({ p, owner }: { p: Profile; owner: string }) {
   const { fishOf, couple, tasks, today } = useStore()
@@ -27,6 +30,8 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
   if (!me) return null
   const myFish = fishOf(userId)
   const aquarium = Boolean(couple?.aquarium_bought)
+  const season = seasonOf(today)
+  const [recap, setRecap] = useState(false)
   const owners = [{ p: me, owner: me.display_name || 'moi' }, ...(partner ? [{ p: partner, owner: partnerName }] : [])]
 
   return (
@@ -42,13 +47,14 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
       <section aria-label="Vos poissons" className="card pad stack" style={{ gap: 14 }}>
         {aquarium ? (
           <Tank
-            fishes={owners.map(({ p }) => ({ color: p.fish_color, hat: p.fish_hat, pet: p.fish_pet, scale: scaleOf(fishOf(p.id).level), name: p.fish_name, mood: moodOf(tasks, today, p.id) }))}
+            fishes={owners.map(({ p }) => ({ color: p.fish_color, hat: seasonalHat(p.fish_hat, season), pet: p.fish_pet, scale: scaleOf(fishOf(p.id).level), name: p.fish_name, mood: moodOf(tasks, today, p.id) }))}
             decor={coupleItems.map((c) => c.item_id)}
+            noel={season === 'noel'}
           />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: partner ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: 14 }}>
             {owners.map(({ p }, i) => (
-              <Bowl key={p.id} color={p.fish_color} hat={p.fish_hat} pet={p.fish_pet} style={p.bowl_style}
+              <Bowl key={p.id} noel={season === 'noel'} color={p.fish_color} hat={seasonalHat(p.fish_hat, season)} pet={p.fish_pet} style={p.bowl_style}
                 scale={scaleOf(fishOf(p.id).level)} name={p.fish_name} flip={i === 1} mood={moodOf(tasks, today, p.id)} />
             ))}
           </div>
@@ -82,7 +88,11 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
         </section>
       )}
 
-      <button type="button" className="btn block" onClick={openShop}><Coin />Ouvrir la boutique</button>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <button type="button" className="btn" onClick={openShop}><Coin />Boutique</button>
+        <button type="button" className="btn" onClick={() => setRecap(true)}>Récap {monthName(today)}</button>
+      </div>
+      {recap && <MonthRecapSheet month={`${today.slice(0, 7)}-01`} onClose={() => setRecap(false)} />}
 
       <section aria-label="Les stades" className="card pad stack">
         <h2 className="h2">Les stades</h2>
