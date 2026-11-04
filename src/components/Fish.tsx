@@ -4,7 +4,7 @@ import type { FishColor } from '../lib/types'
 import type { Mood } from '../lib/mood'
 
 // Sprite 18 × 12 : o contour, b corps, l ventre, f nageoires, h reflet, w blanc de l'œil, k pupille
-const SPRITE = [
+export const SPRITE = [
   '........ooo.......',
   '.......offfo......',
   '..oo..obbbbboo....',
@@ -35,8 +35,8 @@ export const PALETTES: Record<FishColor, { label: string; b: string; l: string; 
 export const FREE_COLORS: FishColor[] = ['corail', 'rose', 'lagon', 'ocean', 'soleil']
 
 // Accessoires dessinés au-dessus de la tête : [x, y, largeur, hauteur, couleur]
-type Px = [number, number, number, number, string]
-const HATS: Record<string, Px[]> = {
+export type Px = [number, number, number, number, string]
+export const HATS: Record<string, Px[]> = {
   bandeau: [[7, 3, 7, 1, '#E0304E'], [6, 2, 1, 1, '#E0304E'], [5, 3, 1, 1, '#E0304E']],
   lunettes: [[9, 4, 2, 1, '#1B1B3A'], [11, 4, 4, 2, '#1B1B3A'], [12, 4, 2, 1, '#8DD3FF']],
   casquette: [[9, -1, 3, 1, '#3F7DE8'], [8, 0, 5, 2, '#3F7DE8'], [13, 1, 3, 1, '#1B4F8C'], [10, 0, 1, 1, '#FFFFFF']],

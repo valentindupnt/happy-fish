@@ -395,3 +395,4 @@ button.bowl { background: none; border: none; }
 .offline-bar { flex-shrink: 0; padding: calc(8px + var(--safe-top)) 16px 8px; background: var(--ink); color: #FFFFFF; font-size: 12.5px; font-weight: 700; text-align: center; }
 .offline-bar + .scroll .screen { padding-top: 14px; }
 .wheel-label > span.flip { transform: translateX(-50%) rotate(180deg); }
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.4; }

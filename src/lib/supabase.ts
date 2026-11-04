@@ -8,8 +8,8 @@ const env = import.meta.env as Record<string, string | undefined>
 const PROJECT_URL = 'https://ovdieabdnbhghkjsfzcn.supabase.co'
 const PUBLISHABLE_KEY = 'sb_publishable_QPAcygMKBRtC1qHxQ_r6vw_ndE8XZhU'
 
-const url = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || PROJECT_URL
-const key =
+export const url = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || PROJECT_URL
+export const key =
   env.VITE_SUPABASE_KEY ||
   env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||

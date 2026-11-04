@@ -6,6 +6,7 @@ import { FREE_COLORS, Fish, PALETTES } from '../components/Fish'
 import { Icon, Switch } from '../components/ui'
 import { disablePush, enablePush, pushState, sendTestPush } from '../lib/push'
 import type { PushState } from '../lib/push'
+import { widgetScript } from '../lib/widgetScript'
 
 export function Settings({ onBack, openShop }: { onBack: () => void; openShop: () => void }) {
   const { me, partner, couple, force, run, reload, partnerName, purchases } = useStore()
@@ -120,6 +121,8 @@ export function Settings({ onBack, openShop }: { onBack: () => void; openShop: (
       </section>
 
       <Notifications me={me} partnerLabel={partner ? partnerName : 'ton duo'} />
+
+      <WidgetSetup />
 
       <section aria-label="Notre duo" className="card pad stack">
         <h2 className="h2">Notre duo</h2>
@@ -250,6 +253,68 @@ function Notifications({ me, partnerLabel }: { me: Profile; partnerLabel: string
         <Switch checked={me.notify_evening} onChange={(v) => pref('notify_evening', v)} label="Rappel du soir, vers 20 h" />
         <Switch checked={me.notify_weekly} onChange={(v) => pref('notify_weekly', v)} label="Bilan du lundi matin" />
       </div>
+    </section>
+  )
+}
+
+function WidgetSetup() {
+  const { run, toast } = useStore()
+  const [token, setToken] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // Le jeton est chargé à l'avance : sur iPhone, la copie doit se faire tout de suite après le toucher
+  useEffect(() => {
+    if (!open || token) return
+    supabase.rpc('my_widget_token').then(({ data, error }) => {
+      if (error) toast(errorText(error), 'error')
+      else setToken(data as string)
+    })
+  }, [open, token, toast])
+
+  const copy = async () => {
+    if (!token) return
+    try {
+      await navigator.clipboard.writeText(widgetScript(token))
+      setCopied(true)
+      toast('Script copié')
+    } catch {
+      toast('Copie impossible ici, réessaie depuis l’app installée', 'error')
+    }
+  }
+
+  const reset = async () => {
+    let next: string | null = null
+    const ok = await run(async () => {
+      const r = await supabase.rpc('reset_widget_token')
+      next = r.data as string
+      return r
+    }, 'Nouveau script prêt, l’ancien widget ne marche plus')
+    if (ok && next) { setToken(next); setCopied(false) }
+  }
+
+  return (
+    <section aria-label="Widget iPhone" className="card pad stack">
+      <h2 className="h2">Widget sur l’écran d’accueil</h2>
+      <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.45 }}>
+        Vos deux bocaux et l’avancement du jour, directement sur l’écran d’accueil, grâce à l’app gratuite Scriptable.
+      </span>
+      {!open ? (
+        <button type="button" className="btn" onClick={() => setOpen(true)}>Installer le widget</button>
+      ) : (
+        <>
+          <ol className="steps">
+            <li>Installe <strong>Scriptable</strong> depuis l’App Store (gratuite).</li>
+            <li>Touche <strong>Copier le script</strong> ci-dessous.</li>
+            <li>Dans Scriptable, touche <strong>+</strong>, colle le script, puis nomme-le « Happy Fish » en haut.</li>
+            <li>Sur l’écran d’accueil, appuie longuement, touche <strong>Modifier</strong> puis <strong>Ajouter un widget</strong>, choisis <strong>Scriptable</strong> en taille moyenne.</li>
+            <li>Appuie sur le widget ajouté, <strong>Modifier le widget</strong>, et choisis le script « Happy Fish ».</li>
+          </ol>
+          <button type="button" className="btn primary" disabled={!token} onClick={copy}>{copied ? 'Copié, recopier' : token ? 'Copier le script' : 'Préparation…'}</button>
+          <span className="small">Le script contient ta clé personnelle : ne le partage pas. Si tu l’as envoyé par erreur, change la clé.</span>
+          <button type="button" className="btn small ghost" onClick={reset}>Changer la clé du widget</button>
+        </>
+      )}
     </section>
   )
 }

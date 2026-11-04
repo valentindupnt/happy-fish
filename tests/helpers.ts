@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 
-export const SQL_FILES = ['../supabase/schema.sql', '../supabase/seed.sql', '../supabase/migrations/002_lot2.sql', '../supabase/migrations/004_lot3.sql']
+export const SQL_FILES = ['../supabase/schema.sql', '../supabase/seed.sql', '../supabase/migrations/002_lot2.sql', '../supabase/migrations/004_lot3.sql', '../supabase/migrations/005_widget.sql']
 
 const AUTH_STUB = `
   create schema if not exists auth;
@@ -14,6 +14,7 @@ const AUTH_STUB = `
   do $$ begin
     if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon; end if;
     if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated; end if;
+    if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role; end if;
   end $$;
   grant usage on schema public, auth to anon, authenticated;
   grant execute on function auth.uid() to anon, authenticated;
