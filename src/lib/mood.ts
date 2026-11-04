@@ -4,7 +4,10 @@ import type { Task } from './types'
 export type Mood = 'happy' | 'sad' | 'sleep' | 'normal'
 
 export function parisHour(d = new Date()): number {
-  return Number(new Intl.DateTimeFormat('fr-FR', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Europe/Paris' }).format(d))
+  const part = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: 'Europe/Paris' })
+    .formatToParts(d).find((x) => x.type === 'hour')
+  const h = Number(part?.value)
+  return Number.isFinite(h) ? h % 24 : 12
 }
 
 /** Humeur du poisson : il dort la nuit, danse quand la journée est complète, boude s'il y a des ratés */
