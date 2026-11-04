@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { addDays, weekLabel, weekStart } from '../lib/dates'
 import type { Review } from '../lib/types'
+import { SurpriseWheel } from './SurpriseWheel'
 
 function readSeen(key: string): boolean {
   try { return window.localStorage.getItem(key) === '1' } catch { return false }
@@ -19,6 +20,7 @@ export function WeekReview() {
   const lastWeek = addDays(weekStart(today), -7)
   const seenKey = `hf-review-${lastWeek}`
   const [seen, setSeen] = useState(() => readSeen(seenKey))
+  const [wheel, setWheel] = useState(false)
 
   const mine = reviews.find((r) => r.profile_id === userId && r.week_start === lastWeek)
   const theirs = reviews.find((r) => r.profile_id === partner?.id && r.week_start === lastWeek)
@@ -55,8 +57,10 @@ export function WeekReview() {
           <span className="small" style={{ color: 'var(--cream-ink)' }}>
             {r.missed} ratés {weekLabel(r.week_start).toLowerCase()}. {partnerName} confirmera dans l’app une fois la surprise reçue.
           </span>
+          <div><button type="button" className="btn small primary" onClick={() => setWheel(true)}>Tourner la roue des surprises</button></div>
         </section>
       ))}
+      {wheel && <SurpriseWheel onClose={() => setWheel(false)} />}
 
       {theyOwe.map((r) => (
         <section key={r.id} aria-label="Surprise à recevoir" className="card pad stack" style={{ gap: 8, background: '#FFE3EF' }}>

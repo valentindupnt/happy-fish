@@ -7,6 +7,8 @@ import type { Task, Wish } from '../lib/types'
 import { TaskRow } from '../components/TaskRow'
 import { Icon, Sheet } from '../components/ui'
 import type { AddGoalInit } from '../components/AddGoal'
+import { Challenges } from '../components/Challenges'
+import { SurpriseWheel } from '../components/SurpriseWheel'
 
 function safeLink(link: string | null): string | null {
   if (!link) return null
@@ -17,8 +19,9 @@ function safeLink(link: string | null): string | null {
 }
 
 export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; openAdd: (init: AddGoalInit) => void }) {
-  const { tasks, today, wishes, nameOf, run, reload, userId } = useStore()
+  const { tasks, today, wishes, nameOf, run, reload, userId, surpriseIdeas } = useStore()
   const [editing, setEditing] = useState<Wish | 'new' | null>(null)
+  const [wheel, setWheel] = useState(false)
   const common = tasksOfWeek(tasks, weekStart(today), null).sort((a, b) => a.date.localeCompare(b.date))
 
   return (
@@ -27,6 +30,8 @@ export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; o
         <p className="kicker">Nos objectifs et nos envies</p>
         <h1 className="title">Ensemble</h1>
       </header>
+
+      <Challenges />
 
       <div className="row-between">
         <h2 className="h2">Objectifs communs</h2>
@@ -85,6 +90,17 @@ export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; o
           <Icon name="plus" size={18} />Ajouter une envie
         </button>
       )}
+
+      <section aria-label="Roue des surprises" className="card pad cream" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span className="h2" style={{ fontSize: 15 }}>Roue des surprises</span>
+          <span className="small" style={{ color: 'var(--cream-ink)' }}>
+            {surpriseIdeas.length} idée{surpriseIdeas.length > 1 ? 's' : ''} en réserve, pour quand l’un de vous doit une surprise.
+          </span>
+        </div>
+        <button type="button" className="btn small primary" onClick={() => setWheel(true)}>Ouvrir</button>
+      </section>
+      {wheel && <SurpriseWheel onClose={() => setWheel(false)} />}
 
       {editing && (
         <WishSheet
