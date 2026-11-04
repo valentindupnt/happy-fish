@@ -6,13 +6,14 @@ function run(family: string, payload: unknown) {
   const calls: string[] = []
   const fills: string[] = []
   const xs: number[] = []
+  const ws: number[] = []
   class Color { constructor(public hex: string, public alpha = 1) {} }
   class Rect { constructor(public x: number, public y: number, public w: number, public h: number) {} }
   class Size { constructor(public w: number, public h: number) {} }
   class DrawContext {
     size: unknown; opaque = false; respectScreenScale = false
     setFillColor(c: Color) { fills.push(c.hex) }
-    fillRect(r: Rect) { calls.push('rect'); xs.push(Math.round(r.x * 100)) }
+    fillRect(r: Rect) { calls.push('rect'); xs.push(Math.round(r.x * 100)); ws.push(r.w) }
     fillEllipse() { calls.push('ellipse') }
     setFont() {} setTextColor() {} setTextAlignedCenter() {}
     drawTextInRect(t: string) { calls.push(`text:${t}`) }
@@ -25,7 +26,7 @@ function run(family: string, payload: unknown) {
   const config = { widgetFamily: family, runsInWidget: true }
   const AsyncFn = Object.getPrototypeOf(async () => undefined).constructor
   const fn = new AsyncFn('Color', 'Rect', 'Size', 'DrawContext', 'ListWidget', 'Request', 'Font', 'Script', 'config', widgetScript('a'.repeat(64)))
-  return fn(Color, Rect, Size, DrawContext, ListWidget, Request, Font, Script, config).then(() => ({ calls, fills, xs }))
+  return fn(Color, Rect, Size, DrawContext, ListWidget, Request, Font, Script, config).then(() => ({ calls, fills, xs, ws }))
 }
 
 const payload = {
@@ -90,5 +91,14 @@ describe('widget Scriptable', () => {
     const seen = new Set<string>()
     for (let i = 0; i < 12; i++) seen.add((await run('small', payload)).xs.join(','))
     expect(seen.size).toBeGreaterThan(1)
+  })
+
+  it('le poisson grandit avec son stade', async () => {
+    const mk = (level: number) => ({ ...payload, fishes: [{ ...payload.fishes[0], level, hat: null }] })
+    const px = async (level: number) => {
+      const { ws } = await run('small', mk(level))
+      return Math.min(...ws.filter((w) => w > 0 && w < 10)) // la plus petite case du sprite
+    }
+    expect(await px(50)).toBeGreaterThan(await px(1))
   })
 })

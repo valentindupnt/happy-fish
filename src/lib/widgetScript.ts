@@ -93,7 +93,9 @@ function drawBowl(ctx, cx, top, size, f, mood) {
   fill(ctx, '#F2C66D', cx - size * 0.34, top + size * 0.8, size * 0.68, size * 0.1)
 
   // le poisson nage à un endroit différent à chaque rafraîchissement
-  const px = Math.max(2, Math.floor(size / 26))
+  // il grandit avec son stade (10 stades de 5 niveaux), comme dans l'app
+  const stade = Math.min(10, Math.floor(((f.level || 1) - 1) / 5) + 1)
+  const px = Math.max(2, Math.round(size / 26 * (1 + (stade - 1) * 0.03) * 2) / 2)
   const base = top + size * 0.26
   const flip = Math.random() < 0.5
   let dx = rnd(-7, 7)
