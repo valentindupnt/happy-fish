@@ -7,8 +7,10 @@ import { canAct } from '../lib/tasks'
 import type { Task } from '../lib/types'
 import { Sheet } from './ui'
 import { useTaskActions } from './TaskRow'
+import { startFocus, unlockAudio } from './FocusTimer'
+import type { FocusState } from './FocusTimer'
 
-export function TaskSheet({ task, onClose, onEncourage }: { task: Task; onClose: () => void; onEncourage: (t: Task) => void }) {
+export function TaskSheet({ task, onClose, onEncourage, onFocus }: { task: Task; onClose: () => void; onEncourage: (t: Task) => void; onFocus: (f: FocusState) => void }) {
   const { userId, today, goalOf, categoryOf, nameOf, run, reload, reloadTasks } = useStore()
   const actions = useTaskActions()
   const goal = goalOf(task.goal_id)
@@ -61,6 +63,11 @@ export function TaskSheet({ task, onClose, onEncourage }: { task: Task; onClose:
 
       {mine ? (
         <>
+          {!done && task.date <= today && (
+            <button type="button" className="btn primary block" onClick={() => { unlockAudio(); onFocus(startFocus(task.id, goal.minutes)) }}>
+              Lancer le minuteur, {goal.minutes} min
+            </button>
+          )}
           {!done && (
             <div className="card pad stack">
               <span className="h2" style={{ fontSize: 15 }}>Déplacer</span>

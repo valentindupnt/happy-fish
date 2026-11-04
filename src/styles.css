@@ -314,3 +314,36 @@ button.bowl { background: none; border: none; }
 .streak-badge { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: #FFE6D6; color: #A3361A; font-size: 11px; font-weight: 800; vertical-align: 2px; }
 .streak-count { min-width: 30px; text-align: center; font-family: var(--pixel); font-size: 11px; padding: 4px 6px; border-radius: 8px; background: #FFE6D6; color: #A3361A; }
 .streak-count.hot { background: #FF5E3A; color: #FFFFFF; }
+
+/* Minuteur plein écran */
+.focus { position: fixed; inset: 0; z-index: 100; background: #05060F; color: #FFFFFF; overflow: hidden; animation: fade 0.3s ease;
+  display: flex; flex-direction: column; justify-content: space-between; padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom)); }
+.focus-swim-x { position: absolute; left: 0; top: 0; animation: focusx 26s ease-in-out infinite; }
+.focus-swim-y { animation: focusy 15s ease-in-out infinite alternate; }
+.focus.is-paused .focus-swim-x, .focus.is-paused .focus-swim-y, .focus.is-paused .focus-bubble { animation-play-state: paused; }
+@keyframes focusx {
+  0% { transform: translateX(-110px) scaleX(1); }
+  48% { transform: translateX(calc(100vw + 10px)) scaleX(1); }
+  50% { transform: translateX(calc(100vw + 10px)) scaleX(-1); }
+  98% { transform: translateX(-110px) scaleX(-1); }
+  100% { transform: translateX(-110px) scaleX(1); }
+}
+@keyframes focusy { 0% { transform: translateY(12vh); } 35% { transform: translateY(62vh); } 70% { transform: translateY(28vh); } 100% { transform: translateY(78vh); } }
+.focus-bubble { position: absolute; width: 8px; height: 8px; border: 2px solid rgba(255, 255, 255, 0.35); border-radius: 50%; bottom: -12px; animation: focusbubble 9s linear infinite; }
+.focus-bubble-a { left: 18%; }
+.focus-bubble-b { left: 56%; animation-delay: 3s; width: 12px; height: 12px; }
+.focus-bubble-c { left: 82%; animation-delay: 6s; }
+@keyframes focusbubble { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(-105vh); opacity: 0; } }
+.focus-center { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; pointer-events: none; }
+.focus-title { font-size: 16px; font-weight: 800; color: rgba(255, 255, 255, 0.75); max-width: 90%; }
+.focus-time { font-family: var(--pixel); font-size: 44px; letter-spacing: 2px; text-shadow: 0 0 18px rgba(77, 142, 234, 0.6); }
+.focus-bar { width: min(260px, 70vw); height: 8px; border: 2px solid rgba(255, 255, 255, 0.6); }
+.focus-bar > div { height: 100%; background: var(--orange); transition: width 0.25s linear; }
+.focus-hint { font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.55); }
+.focus-actions { position: relative; z-index: 1; display: flex; gap: 10px; justify-content: center; }
+.focus-btn { min-height: 48px; padding: 0 18px; border: 2px solid rgba(255, 255, 255, 0.7); border-radius: 12px; background: transparent; color: #FFFFFF; font-size: 15px; font-weight: 800; }
+.focus-btn.primary { background: var(--orange); border-color: var(--orange); color: #1B1B3A; }
+@media (prefers-reduced-motion: reduce) {
+  .focus-swim-x, .focus-swim-y, .focus-bubble { animation: none; }
+  .focus-swim-x { transform: translate(30vw, 18vh); }
+}

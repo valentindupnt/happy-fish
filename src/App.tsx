@@ -15,6 +15,8 @@ import { Settings } from './screens/Settings'
 import { Shop } from './screens/Shop'
 import { AddGoal } from './components/AddGoal'
 import type { AddGoalInit } from './components/AddGoal'
+import { FocusTimer, readFocus } from './components/FocusTimer'
+import type { FocusState } from './components/FocusTimer'
 import { TaskSheet } from './components/TaskSheet'
 import { Fish } from './components/Fish'
 import { Icon, Toasts } from './components/ui'
@@ -68,6 +70,7 @@ function Main() {
   const [chatRef, setChatRef] = useState<string | null>(null)
   const [seenChat, setSeenChat] = useState(() => localStorageGet('hf-seen-chat'))
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [focus, setFocus] = useState<FocusState | null>(() => readFocus())
 
   const openTask = useCallback((t: Task) => setOpenTaskItem(t), [])
   const openAdd = useCallback((day: string) => setAdding({ day }), [])
@@ -124,8 +127,10 @@ function Main() {
           task={openTaskItem}
           onClose={() => setOpenTaskItem(null)}
           onEncourage={(t) => { setOpenTaskItem(null); setChatRef(t.id); setTab('chat'); setView('tabs') }}
+          onFocus={(f) => { setOpenTaskItem(null); setFocus(f) }}
         />
       )}
+      {focus && <FocusTimer focus={focus} onClose={() => setFocus(null)} />}
     </>
   )
 }
