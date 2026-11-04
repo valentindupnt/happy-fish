@@ -76,7 +76,7 @@ export function SurpriseWheel({ onClose }: { onClose: () => void }) {
             <div className="wheel" style={{ background: `conic-gradient(${gradient})`, transform: `rotate(${angle}deg)` }} aria-hidden="true">
               {slices.map((s, i) => (
                 <span key={s.id} className="wheel-label" style={{ transform: `rotate(${i * step + step / 2}deg)` }}>
-                  <span className={i * step + step / 2 < 180 ? 'flip' : undefined}>{s.title.length > 16 ? `${s.title.slice(0, 15)}…` : s.title}</span>
+                  <span>{s.title.length > 16 ? `${s.title.slice(0, 15)}…` : s.title}</span>
                 </span>
               ))}
             </div>

@@ -1,6 +1,6 @@
 # Happy Fish : guide de mise en route et de reprise
 
-*Application d'objectifs à deux, avec un poisson pixel art qui grandit. Version 1, lots 1 et 2.*
+*Application d'objectifs à deux, avec un poisson pixel art qui grandit. Version 1, lots 1, 2 et 3.*
 
 ## 1. En bref
 
@@ -39,13 +39,16 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 
 | Écran | Contenu |
 |---|---|
-| **Aujourd'hui** | Le poisson et son XP, le bilan de la semaine passée et les surprises, les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher, reporter, compteur de ratés |
+| **Aujourd'hui** | Le poisson et son humeur, le bilan de la semaine passée et les surprises, le récap du mois (les 5 premiers jours), les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher (avec des bulles), reporter, mes séries, compteur de ratés |
 | **Ma semaine** | Vue jour par jour, vue mois, préparation de la semaine, ajout sur un jour précis, semaine de Julie |
-| **Ensemble** | Objectifs communs (XP pour les deux) et envies avec notes et lien |
+| **Ensemble** | Défi de la semaine tiré au dé, objectifs communs (XP pour les deux), envies avec notes et lien, roue des surprises |
 | **Petits mots** | Chat en direct, bulles, friandises (+2 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif |
-| **Aquarium** | Les deux bocaux, puis le grand aquarium commun avec ses décorations, la cagnotte, stades et niveaux |
+| **Aquarium** | Les deux bocaux, puis le grand aquarium commun avec ses décorations (on les touche pour dire coucou), la cagnotte, le récap du mois, stades et niveaux |
 | **Boutique** | Couleurs, bocaux, habits et accessoires, familiers, cagnotte commune, décorations |
-| **Paramètres** | Surnom et couleur du poisson, surnoms, messages de force, notifications, code du duo, déconnexion |
+| **Paramètres** | Surnom et couleur du poisson, surnoms, messages de force, notifications, widget de l'écran d'accueil, changement de mot de passe, déconnexion |
+| **Fiche d'un sous-objectif** | Minuteur plein écran : écran noir, le poisson nage, le sous-objectif se coche tout seul à la fin |
+
+**Lot 3** : humeurs du poisson (il dort de 22 h à 7 h, danse quand la journée est complète, boude à partir de 2 ratés dans la semaine), séries, minuteur, dé des défis, roue des surprises, décor de Noël en décembre (neige, sapin, bonnet pour les poissons sans accessoire), récap du mois, mode hors ligne, widget.
 
 **Notifications (lot 2)** : petit mot reçu, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h.
 
@@ -64,7 +67,11 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 | Grand aquarium | Sans lui, le poisson reste au niveau 6 et l'XP s'accumule en réserve |
 | Ratés | Sous-objectifs des jours passés de la semaine, ni faits ni retirés. Un raté reporté puis fait ne compte pas |
 | Surprise | Calculée le lundi matin : 3 ratés ou plus la semaine passée, et on doit une surprise à l'autre. Seul celui qui la reçoit peut la marquer comme reçue |
-| Pièces | 10 par niveau gagné, 25 de plus à chaque nouveau stade, moins les achats et les versements à la cagnotte |
+| Pièces | 10 par niveau, 25 de plus à chaque nouveau stade, moins les achats et les versements à la cagnotte. Elles suivent le niveau réel : l'XP en réserve rapporte aussi des pièces, donc la cagnotte ne peut pas se bloquer |
+| Séries | Sous-objectifs d'un objectif récurrent faits d'affilée. Reporté puis fait : la série continue. Raté (jour passé, pas fait) : retour à zéro. Retiré, ou aujourd'hui pas encore fait : sans effet |
+| Défi de la semaine | Un seul lancer de dé par semaine, parmi les défis de la liste commune. Défi réussi : 10 pièces dans la cagnotte (et l'aquarium s'achète tout seul si elle atteint 120) |
+| Roue des surprises | Tire une idée au hasard dans la liste commune. Le résultat n'est enregistré nulle part |
+| Hors ligne | L'app s'ouvre avec les dernières données. Les coches attendent le retour du réseau puis partent toutes seules ; les autres actions demandent le réseau |
 | Boutique | Chaque objet s'achète une fois, à partir d'un certain niveau. On ne peut équiper que ce qu'on possède |
 | Cagnotte | Chacun y verse ses pièces. À 120, le grand aquarium s'achète tout seul et débloque le niveau 7. Ensuite, elle sert aux décorations communes |
 
@@ -78,7 +85,12 @@ Personne ne peut modifier l'XP, une coche ou les données de l'autre en contourn
 | L'apparence, un écran | Le code, poussé sur `main` : Vercel redéploie en 1 à 2 minutes |
 | Une règle de la base | Un fichier de migration (voir ci-dessous) |
 
-**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql` et `003_push.sql` sont déjà appliquées sur le projet `happy-fish`.
+**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql` et `005_widget.sql` sont déjà appliquées sur le projet `happy-fish`.
+
+### Le widget, côté coulisses
+- Le widget passe par l'app gratuite **Scriptable**. Dans Paramètres, **Installer le widget** donne les étapes et copie un script qui contient une clé personnelle.
+- Le script interroge la fonction `widget` (dossier `supabase/functions/widget/`, vérification JWT désactivée) avec cette clé, qui renvoie les poissons du duo et l'avancement du jour. Il se met à jour environ toutes les 15 minutes (c'est iOS qui décide du moment exact).
+- Les clés sont dans la table `widget_tokens`, que l'app ne peut pas lire directement. **Changer la clé du widget** rend l'ancien script inutilisable.
 
 ### Les notifications, côté coulisses
 - La fonction `notify` (dossier `supabase/functions/notify/`, déployée dans Supabase, onglet **Edge Functions**) envoie les notifications.
@@ -110,7 +122,10 @@ npm run build                # vérification complète
 | `supabase/seed.sql` | Catégories et suggestions de départ |
 | `supabase/migrations/` | Évolutions de la base (lot 2 : boutique, cagnotte, bilan, notifications) |
 | `supabase/functions/notify/` | Envoi des notifications |
-| `tests/` | 30 tests des règles (`db.test.ts` pour le lot 1, `lot2.test.ts` pour le lot 2) |
+| `supabase/functions/widget/` | Données du widget de l'écran d'accueil |
+| `src/lib/mood.ts`, `src/lib/fx.ts`, `src/lib/season.ts` | Humeurs du poisson, bulles, décor de saison |
+| `src/lib/widgetScript.ts` | Script Scriptable généré avec la clé de chacun |
+| `tests/` | 44 tests (`db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
 
 ## 7. Dépannage
 
@@ -124,3 +139,5 @@ npm run build                # vérification complète
 | Pas de bouton pour activer les notifications | Ouvrir l'app depuis l'icône de l'écran d'accueil, pas depuis Safari (iOS 16.4 ou plus récent) |
 | Notifications refusées par erreur | Réglages de l'iPhone, **Notifications**, **Happy Fish**, autoriser |
 | Le test n'arrive pas | Supabase, **Edge Functions**, `notify`, onglet **Logs** ; désactiver puis réactiver dans Paramètres |
+| Le widget affiche « attend le réseau » | Pas de réseau, ou clé changée : recopier le script depuis Paramètres et le recoller dans Scriptable |
+| Une coche faite dans le métro n'apparaît pas chez l'autre | Elle part au retour du réseau, à la prochaine ouverture de l'app |
