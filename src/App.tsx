@@ -62,7 +62,7 @@ function Splash() {
 }
 
 function Main() {
-  const { loading, me, messages, userId, today } = useStore()
+  const { loading, me, messages, userId, today, online, pendingChecks } = useStore()
   const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get('tab') === 'chat' ? 'chat' : 'today'))
   const [view, setView] = useState<'tabs' | 'week' | 'settings' | 'shop'>('tabs')
   const [adding, setAdding] = useState<AddGoalInit | null>(null)
@@ -110,6 +110,13 @@ function Main() {
   const isChat = view === 'tabs' && tab === 'chat'
   return (
     <>
+      {(!online || pendingChecks > 0) && (
+        <div className="offline-bar" role="status">
+          {online
+            ? 'Envoi des coches faites hors ligne…'
+            : `Hors ligne : tu vois les dernières données.${pendingChecks ? ` ${pendingChecks} coche${pendingChecks > 1 ? 's' : ''} en attente.` : ' Tes coches partiront au retour du réseau.'}`}
+        </div>
+      )}
       <div ref={scrollRef} className={isChat ? 'scroll fixed' : 'scroll'}>{content}</div>
       {view !== 'settings' && view !== 'shop' && (
         <nav className="tabs" aria-label="Navigation">

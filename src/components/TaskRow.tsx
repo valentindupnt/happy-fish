@@ -11,9 +11,13 @@ import { CheckMark, Flame } from './ui'
 
 export function useTaskActions() {
   const store = useStore()
-  const { run, reloadTasks, reload, today } = store
+  const { run, reloadTasks, reload, today, queueToggle } = store
   return {
     toggle: async (task: Task) => {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        queueToggle(task)
+        return true
+      }
       const ok = await run(() => supabase.rpc('toggle_task', { p_task: task.id }))
       if (ok) await Promise.all([reloadTasks(), reload(['fish', 'streaks'])])
       return ok

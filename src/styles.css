@@ -390,3 +390,7 @@ button.bowl { background: none; border: none; }
 .recap-label { font-size: 13px; font-weight: 700; color: var(--muted); }
 .recap-val { font-size: 14px; font-weight: 600; text-align: center; padding: 6px 4px; border-radius: 8px; background: var(--card); border: 2px solid var(--line); }
 .recap-val.win { font-weight: 900; border-color: var(--orange); background: #FFF1E0; }
+
+/* Hors ligne */
+.offline-bar { flex-shrink: 0; padding: calc(8px + var(--safe-top)) 16px 8px; background: var(--ink); color: #FFFFFF; font-size: 12.5px; font-weight: 700; text-align: center; }
+.offline-bar + .scroll .screen { padding-top: 14px; }

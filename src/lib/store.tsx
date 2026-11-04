@@ -56,9 +56,41 @@ interface Store extends State {
   categoryOf: (id: string | null) => Category | undefined
   goalOf: (id: string) => Goal | undefined
   fishOf: (profileId: string | undefined) => FishStatus
+  online: boolean
+  pendingChecks: number
+  /** Cocher ou décocher sans réseau : appliqué tout de suite, envoyé au retour du réseau */
+  queueToggle: (task: Task) => void
 }
 
 const Ctx = createContext<Store | null>(null)
+
+// Hors ligne : dernières données gardées dans le téléphone, coches mises en attente
+const cacheKey = (u: string) => `hf-cache-${u}`
+const queueKey = (u: string) => `hf-queue-${u}`
+
+function readCache(userId: string): State | null {
+  try {
+    const raw = window.localStorage.getItem(cacheKey(userId))
+    return raw ? { ...EMPTY, ...(JSON.parse(raw) as Partial<State>), loading: false } : null
+  } catch { return null }
+}
+
+function writeCache(userId: string, st: State) {
+  try {
+    const { loading: _l, ...rest } = st
+    window.localStorage.setItem(cacheKey(userId), JSON.stringify(rest))
+  } catch { /* plein ou indisponible : tant pis */ }
+}
+
+export function readQueue(userId: string): string[] {
+  try { return JSON.parse(window.localStorage.getItem(queueKey(userId)) || '[]') as string[] } catch { return [] }
+}
+
+function writeQueue(userId: string, q: string[]) {
+  try { window.localStorage.setItem(queueKey(userId), JSON.stringify(q)) } catch { /* rien */ }
+}
+
+const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false
 
 export function useStore(): Store {
   const s = useContext(Ctx)
@@ -72,8 +104,20 @@ async function must<T>(p: PromiseLike<{ data: T | null; error: unknown }>): Prom
   return data as T
 }
 
+function applyQueue(tasks: Task[], ids: string[]): Task[] {
+  const flips = new Map<string, number>()
+  for (const id of ids) flips.set(id, (flips.get(id) || 0) + 1)
+  return tasks.map((t) => {
+    const n = flips.get(t.id) || 0
+    if (n % 2 === 0) return t
+    return { ...t, done_at: t.done_at ? null : new Date().toISOString() }
+  })
+}
+
 export function StoreProvider({ userId, children }: { userId: string; children: ReactNode }) {
-  const [state, setState] = useState<State>(EMPTY)
+  const [state, setState] = useState<State>(() => readCache(userId) || EMPTY)
+  const [online, setOnline] = useState(() => !isOffline())
+  const [pendingChecks, setPendingChecks] = useState(() => readQueue(userId).length)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [today, setToday] = useState(todayParis())
   const range = useRef({ from: addDays(weekStart(todayParis()), -42), to: addDays(weekStart(todayParis()), 62) })
@@ -168,10 +212,15 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
         loaders.streaks(), loaders.challenges(), loaders.surprises(),
       ])
       const tasks = await fetchTasks(range.current.from, range.current.to)
-      setState(Object.assign({ ...EMPTY, loading: false, me, partner, tasks }, ...parts))
+      const next = Object.assign({ ...EMPTY, loading: false, me, partner, tasks }, ...parts) as State
+      // Les coches en attente restent visibles tant qu'elles ne sont pas envoyées
+      const q = readQueue(userId)
+      if (q.length) next.tasks = applyQueue(next.tasks, q)
+      setState(next)
+      writeCache(userId, next)
     } catch (e) {
       setState((s) => ({ ...s, loading: false }))
-      toast(errorText(e), 'error')
+      if (!isOffline()) toast(errorText(e), 'error')
     }
   }, [loaders, fetchTasks, toast])
 
@@ -194,6 +243,10 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
   }, [fetchTasks, toast])
 
   const run: Store['run'] = useCallback(async (fn, success) => {
+    if (isOffline()) {
+      toast('Pas de réseau pour l’instant : réessaie dans un moment', 'error')
+      return false
+    }
     try {
       const res = (await fn()) as { error?: unknown } | undefined
       if (res && typeof res === 'object' && 'error' in res && res.error) throw res.error
@@ -205,14 +258,53 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
     }
   }, [toast])
 
-  useEffect(() => { reloadAll() }, [reloadAll])
+  // Envoi des coches faites hors ligne
+  const flushing = useRef(false)
+  const flushQueue = useCallback(async () => {
+    const q = readQueue(userId)
+    if (!q.length || flushing.current || isOffline()) return
+    flushing.current = true
+    const counts = new Map<string, number>()
+    for (const id of q) counts.set(id, (counts.get(id) || 0) + 1)
+    let sent = 0
+    for (const [id, n] of counts) {
+      if (n % 2 === 0) continue // coché puis décoché : rien à envoyer
+      const { error } = await supabase.rpc('toggle_task', { p_task: id })
+      if (!error) sent++
+    }
+    writeQueue(userId, [])
+    setPendingChecks(0)
+    flushing.current = false
+    if (sent) toast(`${sent} coche${sent > 1 ? 's' : ''} faite${sent > 1 ? 's' : ''} hors ligne envoyée${sent > 1 ? 's' : ''}`)
+  }, [userId, toast])
+
+  const queueToggle = useCallback((task: Task) => {
+    const q = [...readQueue(userId), task.id]
+    writeQueue(userId, q)
+    setPendingChecks(q.length)
+    setState((s) => {
+      const next = { ...s, tasks: applyQueue(s.tasks, [task.id]) }
+      writeCache(userId, next)
+      return next
+    })
+  }, [userId])
+
+  useEffect(() => {
+    const on = async () => { setOnline(true); await flushQueue(); await reloadAll() }
+    const off = () => setOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
+  }, [flushQueue, reloadAll])
+
+  useEffect(() => { void flushQueue().then(() => reloadAll()) }, [flushQueue, reloadAll])
 
   // Rechargement au retour dans l'app (et passage à minuit)
   useEffect(() => {
-    const onVisible = () => { if (document.visibilityState === 'visible') reloadAll() }
+    const onVisible = () => { if (document.visibilityState === 'visible') void flushQueue().then(() => reloadAll()) }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [reloadAll])
+  }, [reloadAll, flushQueue])
 
   // Mises à jour en direct
   const coupleId = state.me?.couple_id
@@ -263,8 +355,9 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       categoryOf: (id) => state.categories.find((c) => c.id === id),
       goalOf: (id) => state.goals.find((g) => g.id === id),
       fishOf: (pid) => state.fish.find((f) => f.profile_id === pid) || { profile_id: pid || '', xp: 0, level: 1, level_uncapped: 1, coins: 0 },
+      online, pendingChecks, queueToggle,
     }
-  }, [state, userId, today, reloadAll, reloadTasks, loadWeek, reload, run, toast, toasts])
+  }, [state, userId, today, reloadAll, reloadTasks, loadWeek, reload, run, toast, toasts, online, pendingChecks, queueToggle])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
