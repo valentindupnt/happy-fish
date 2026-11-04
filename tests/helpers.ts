@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 
-export const SQL_FILES = ['../supabase/schema.sql', '../supabase/seed.sql', '../supabase/migrations/002_lot2.sql', '../supabase/migrations/004_lot3.sql', '../supabase/migrations/005_widget.sql']
+export const SQL_FILES = ['../supabase/schema.sql', '../supabase/seed.sql', '../supabase/migrations/002_lot2.sql', '../supabase/migrations/004_lot3.sql', '../supabase/migrations/005_widget.sql', '../supabase/migrations/006_progression.sql']
 
 const AUTH_STUB = `
   create schema if not exists auth;

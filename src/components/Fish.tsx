@@ -43,7 +43,22 @@ export const HATS: Record<string, Px[]> = {
   pirate: [[9, -2, 4, 2, '#1B1B3A'], [7, 0, 8, 2, '#1B1B3A'], [10, 0, 2, 1, '#FFFFFF']],
   noel: [[8, 1, 7, 1, '#FFFFFF'], [9, -1, 5, 2, '#E0304E'], [10, -2, 3, 1, '#E0304E'], [7, -2, 2, 1, '#E0304E'], [6, -2, 1, 1, '#FFFFFF']],
   couronne: [[8, -2, 1, 2, '#E8B92E'], [10, -2, 2, 2, '#E8B92E'], [13, -2, 1, 2, '#E8B92E'], [8, 0, 6, 2, '#E8B92E'], [10, 0, 2, 1, '#E0304E']],
+  fleur: [[11, 0, 1, 1, '#FF6FAE'], [10, 1, 1, 1, '#FF6FAE'], [12, 1, 1, 1, '#FF6FAE'], [11, 2, 1, 1, '#FF6FAE'], [11, 1, 1, 1, '#F2C66D']],
+  noeud: [[5, 5, 1, 3, '#E0304E'], [6, 6, 1, 1, '#9E1530'], [7, 5, 1, 3, '#E0304E']],
+  aureole: [[8, -3, 6, 1, '#FFE08F'], [7, -2, 1, 1, '#FFE08F'], [14, -2, 1, 1, '#FFE08F']],
 }
+
+/** Ce que chaque stade ajoute au dessin (cumulatif) : [x, y, largeur, hauteur, teinte]
+ *  teinte : 'f' nageoire, 'h' reflet, 'l' ventre, ou une couleur fixe */
+const STADE_PARTS: Array<[number, Array<[number, number, number, number, string]>]> = [
+  [3, [[9, -1, 2, 1, 'f']]], // Juvénile : crête dorsale
+  [4, [[10, 7, 1, 1, 'h'], [12, 8, 1, 1, 'h'], [8, 6, 1, 1, 'h']]], // Moyen : écailles claires
+  [5, [[0, 2, 1, 2, 'f'], [0, 8, 1, 2, 'f']]], // Grand : queue fourchue
+  [6, [[10, 11, 2, 1, 'f'], [12, 10, 1, 1, 'f']]], // Adulte : nageoire ventrale
+  [7, [[10, -2, 2, 1, 'f'], [11, -3, 1, 1, 'f']]], // Majestueux : grande voile dorsale
+  [8, [[17, 6, 1, 1, '#1B1B3A'], [17, 8, 1, 1, '#1B1B3A']]], // Ancien : barbillons
+  [9, [[7, 3, 1, 1, '#FFFFFF'], [11, 6, 1, 1, '#FFFFFF'], [9, 8, 1, 1, '#FFFFFF']]], // Légendaire : écailles nacrées
+]
 
 interface Run { x: number; y: number; w: number; c: string }
 
@@ -79,12 +94,19 @@ function runsFor(color: FishColor): Run[] {
 const cache = new Map<FishColor, Run[]>()
 
 /** Le poisson pixel art (avec son accessoire et son humeur). Hauteur = largeur × 16/18. */
-export function Fish({ color, width = 54, flip = false, label, hat, mood = 'normal' }: {
+export function Fish({ color, width = 54, flip = false, label, hat, mood = 'normal', stade = 1, silhouette = false }: {
   color: FishColor; width?: number; flip?: boolean; label?: string; hat?: string | null; mood?: Mood
+  /** Stade de 1 à 10 : chaque stade ajoute un détail au dessin */
+  stade?: number
+  /** Ombre du poisson (aperçu du prochain stade) */
+  silhouette?: boolean
 }) {
   if (!cache.has(color)) cache.set(color, runsFor(color))
   const runs = cache.get(color)!
-  const body = (PALETTES[color] || PALETTES.corail).b
+  const pal = PALETTES[color] || PALETTES.corail
+  const body = pal.b
+  const tint = (t: string) => (silhouette ? '#1B1B3A' : t === 'f' ? pal.f : t === 'h' ? pal.h : t === 'l' ? pal.l : t)
+  const parts = STADE_PARTS.filter(([s]) => stade >= s).flatMap(([, px]) => px)
   return (
     <svg
       viewBox="0 -4 18 16"
@@ -96,8 +118,15 @@ export function Fish({ color, width = 54, flip = false, label, hat, mood = 'norm
       aria-hidden={label ? undefined : true}
       style={{ transform: flip ? 'scaleX(-1)' : undefined, display: 'block', overflow: 'visible' }}
     >
-      <g className={`fish-body mood-${mood}`}>
-        {runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={r.c} />)}
+      {stade >= 10 && !silhouette && (
+        <g className="fish-aura" fill="#FFE08F">
+          <rect x={-1} y={1} width={1} height={1} /><rect x={18} y={2} width={1} height={1} />
+          <rect x={4} y={-2} width={1} height={1} /><rect x={15} y={11} width={1} height={1} /><rect x={2} y={11} width={1} height={1} />
+        </g>
+      )}
+      <g className={`fish-body mood-${silhouette ? 'normal' : mood}`} opacity={silhouette ? 0.22 : undefined}>
+        {runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={silhouette ? '#1B1B3A' : r.c} />)}
+        {parts.map(([x, y, w, h, t], i) => <rect key={`s${i}`} x={x} y={y} width={w} height={h} fill={tint(t)} />)}
         {mood === 'sleep' && (
           <>
             <rect x={12} y={4} width={2} height={2} fill={body} />
@@ -112,7 +141,7 @@ export function Fish({ color, width = 54, flip = false, label, hat, mood = 'norm
           </>
         )}
         {mood === 'sad' && <rect className="fish-tear" x={13} y={6} width={1} height={2} fill="#8DD3FF" />}
-        {hat && HATS[hat]?.map(([x, y, w, h, c], i) => <rect key={`h${i}`} x={x} y={y} width={w} height={h} fill={c} />)}
+        {!silhouette && hat && HATS[hat]?.map(([x, y, w, h, c], i) => <rect key={`h${i}`} x={x} y={y} width={w} height={h} fill={c} />)}
       </g>
       {mood === 'sleep' && (
         <g className="fish-z" fill="#FFFFFF">
@@ -127,6 +156,29 @@ export function Fish({ color, width = 54, flip = false, label, hat, mood = 'norm
         </g>
       )}
     </svg>
+  )
+}
+
+/** Gros plan sur un seul poisson, qui nage dans l'eau de son habitat */
+export function SoloFish({ color, hat, pet, name, mood = 'normal', stade = 1, scale = 1, habitat = 0 }: {
+  color: FishColor; hat?: string | null; pet?: string | null; name: string; mood?: Mood; stade?: number; scale?: number; habitat?: number
+}) {
+  const [boop, trigger] = useBoop()
+  return (
+    <button type="button" className={`tank tank-tall tank-h${Math.max(1, habitat)} solo`} aria-label={`${name} en gros plan, toucher pour lui dire coucou`} onClick={trigger}>
+      <div className="tank-water" />
+      {habitat >= 4 && <div className="tank-rays" aria-hidden="true" />}
+      <div className="tank-sand" />
+      <div className="bowl-bubble bowl-bubble-a" />
+      <div className="bowl-bubble bowl-bubble-b" />
+      {pet && <div className="solo-pet"><Pet kind={pet} width={40} /></div>}
+      <div className={`solo-fish${mood === 'sleep' ? ' sleepy' : ''}`}>
+        <div className={boop ? 'boop' : undefined}>
+          <Fish color={color} hat={hat} stade={stade} width={Math.round(80 * scale)} mood={boop ? 'happy' : mood} />
+        </div>
+        {boop && <Heart />}
+      </div>
+    </button>
   )
 }
 
@@ -175,6 +227,14 @@ const PETS: Record<string, { rows: string[]; colors: Record<string, string> }> =
     rows: ['r........r', 'rr..k.k.rr', '.r..r.r.r.', '..rrrrrr..', '.rrrrrrrr.', 'r.r....r.r'],
     colors: { r: '#E0304E', k: '#1B1B3A' },
   },
+  poulpe: {
+    rows: ['..pppppp..', '.pppppppp.', '.pkppppkp.', '.pppppppp.', 'p.p.pp.p.p', 'p..p..p..p'],
+    colors: { p: '#B06AE0', k: '#1B1B3A' },
+  },
+  axolotl: {
+    rows: ['g......g..', '.gppppg...', '.pkppkpppp', '.ppppppp.p', '..pp..pp..', '..........'],
+    colors: { p: '#FF9CC8', g: '#FF5E8A', k: '#1B1B3A' },
+  },
 }
 
 export function Pet({ kind, width = 30 }: { kind: string; width?: number }) {
@@ -203,6 +263,30 @@ const DECOR: Record<string, { rows: string[]; colors: Record<string, string> }> 
   chateau: {
     rows: ['g.g....g.g', 'ggg....ggg', 'ggg.gg.ggg', 'gggggggggg', 'ggggkkgggg', 'gggkkkkggg', 'gggkkkkggg'],
     colors: { g: '#A7B1C2', k: '#1B1B3A' },
+  },
+  rochers: {
+    rows: ['...ggg....', '..gggggg..', '.gggdggggg', 'ggdgggggdg', 'gggggggggg'],
+    colors: { g: '#8C8FA3', d: '#6B6E80' },
+  },
+  algues: {
+    rows: ['.g...g..g.', '.gg..g.gg.', '..g.gg.g..', '.gg.g..gg.', '.g..gg..g.', 'gg...g.gg.', '.g..gg.g..', '.gg.g..gg.', '..g.g...g.', '..ggg..gg.'],
+    colors: { g: '#2A9C7E' },
+  },
+  corail: {
+    rows: ['.r..r..r..', '.r.rr.rr..', 'rr..r.r..r', '.r..rrr.rr', '..r..r.rr.', '..rrrrrr..', '....rr....', '....rr....'],
+    colors: { r: '#FF5E3A' },
+  },
+  anemone: {
+    rows: ['p.p.p.p.p.', 'pp.ppp.pp.', '.ppppppp..', '..ppppp...', '..ooooo...', '.ooooooo..'],
+    colors: { p: '#FF8FA3', o: '#C2378A' },
+  },
+  etoile: {
+    rows: ['....o....', '...ooo...', 'ooooooooo', '.ooooooo.', '..ooooo..', '.oo...oo.', 'oo.....oo'],
+    colors: { o: '#FF8C1A' },
+  },
+  epave: {
+    rows: ['......m...', '......m...', '.....mmm..', 'bbbbbbbbbb', '.bkbbkbbb.', '..bbbbbb..'],
+    colors: { b: '#6B3E1E', m: '#8B5A2B', k: '#1B1B3A' },
   },
 }
 
@@ -235,8 +319,8 @@ export function Snow({ count = 7 }: { count?: number }) {
 }
 
 /** Petit bocal pixel art avec un poisson qui nage */
-export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = 'rond', mood = 'normal', noel = false }: {
-  color: FishColor; scale?: number; name: string; flip?: boolean; hat?: string | null; pet?: string | null; style?: string; mood?: Mood; noel?: boolean
+export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = 'rond', mood = 'normal', noel = false, stade = 1 }: {
+  color: FishColor; scale?: number; name: string; flip?: boolean; hat?: string | null; pet?: string | null; style?: string; mood?: Mood; noel?: boolean; stade?: number
 }) {
   const [boop, trigger] = useBoop()
   return (
@@ -253,7 +337,7 @@ export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = '
         {pet && <div className="bowl-pet"><Pet kind={pet} width={22} /></div>}
         <div className={flip ? 'bowl-fish swim-rev' : 'bowl-fish swim'}>
           <div className={boop ? 'boop' : undefined}>
-            <Fish color={color} width={Math.round(48 * scale)} hat={hat} mood={boop ? 'happy' : mood} />
+            <Fish color={color} width={Math.round(48 * scale)} hat={hat} stade={stade} mood={boop ? 'happy' : mood} />
           </div>
           {boop && <Heart />}
         </div>
@@ -262,29 +346,33 @@ export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = '
   )
 }
 
-export interface TankFish { color: FishColor; hat?: string | null; pet?: string | null; scale: number; name: string; mood?: Mood }
+export interface TankFish { color: FishColor; hat?: string | null; pet?: string | null; scale: number; name: string; mood?: Mood; stade?: number }
 
-/** Le grand aquarium commun */
-export function Tank({ fishes, decor, children, noel = false }: { fishes: TankFish[]; decor: string[]; children?: ReactNode; noel?: boolean }) {
+/** L'aquarium commun : son décor change avec l'habitat (1 aquarium à deux, 2 grand aquarium, 3 récif, 4 lagon) */
+export function Tank({ fishes, decor, children, noel = false, habitat = 1, habitatName = 'Aquarium', tall = false }: {
+  fishes: TankFish[]; decor: string[]; children?: ReactNode; noel?: boolean; habitat?: number; habitatName?: string; tall?: boolean
+}) {
   const [boop, trigger] = useBoop()
+  const base = tall ? 72 : 46
   return (
-    <button type="button" className="tank" aria-label={`Grand aquarium avec ${fishes.map((f) => f.name).join(' et ')}, toucher pour leur dire coucou`} onClick={trigger}>
+    <button type="button" className={`tank tank-h${habitat}${tall ? ' tank-tall' : ''}`} aria-label={`${habitatName} avec ${fishes.map((f) => f.name).join(' et ')}, toucher pour leur dire coucou`} onClick={trigger}>
       <div className="tank-water" />
+      {habitat >= 4 && <div className="tank-rays" aria-hidden="true" />}
       <div className="tank-sand" />
       <div className="tank-decor">
-        {(noel ? [...decor, 'sapin'] : decor).map((d) => <Decor key={d} kind={d} width={d === 'plante' ? 34 : d === 'sapin' ? 38 : 40} />)}
+        {(noel ? [...decor, 'sapin'] : decor).map((d) => <Decor key={d} kind={d} width={d === 'plante' || d === 'algues' ? 34 : d === 'sapin' ? 38 : 40} />)}
       </div>
       {noel && <Snow count={10} />}
       {noel && <div className="tank-garland" aria-hidden="true" />}
       <div className="tank-pets">
-        {fishes.filter((f) => f.pet).map((f) => <Pet key={f.name} kind={f.pet!} width={26} />)}
+        {fishes.filter((f) => f.pet).map((f) => <Pet key={f.name} kind={f.pet!} width={tall ? 34 : 26} />)}
       </div>
       <div className="bowl-bubble bowl-bubble-a" />
       <div className="bowl-bubble bowl-bubble-b" />
       {fishes.map((f, i) => (
         <div key={f.name} className={`tank-fish tank-fish-${i}${f.mood === 'sleep' ? ' sleepy' : ''}`}>
           <div className={boop ? 'boop' : undefined}>
-            <Fish color={f.color} hat={f.hat} width={Math.round(46 * f.scale)} mood={boop ? 'happy' : f.mood} />
+            <Fish color={f.color} hat={f.hat} stade={f.stade} width={Math.round(base * f.scale)} mood={boop ? 'happy' : f.mood} />
           </div>
           {boop && <Heart />}
         </div>

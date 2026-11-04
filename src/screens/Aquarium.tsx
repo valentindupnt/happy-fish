@@ -1,110 +1,141 @@
+import { useState } from 'react'
 import { useStore } from '../lib/store'
-import { LEVEL_CAP_WITHOUT_AQUARIUM, levelProgress, stadeName, stadeOf } from '../lib/xp'
+import { HABITATS, habitatOf, levelProgress, nextStade, scaleOf, stadeName, stadeOf } from '../lib/xp'
 import type { Profile } from '../lib/types'
 import { MOOD_LABEL, moodOf } from '../lib/mood'
 import { seasonalHat, seasonOf } from '../lib/season'
-import { Bowl, PALETTES, Tank } from '../components/Fish'
-import { Bar, Coin, Icon } from '../components/ui'
-import { useState } from 'react'
+import { Bowl, Fish, PALETTES, SoloFish, Tank } from '../components/Fish'
+import { Bar, Coin } from '../components/ui'
 import { MonthRecapSheet, monthName } from '../components/MonthRecap'
 
+type View = 'duo' | 'me' | 'partner'
+
+/** Fiche courte, pour la vue « Ensemble » */
 function FishInfo({ p, owner }: { p: Profile; owner: string }) {
-  const { fishOf, couple, tasks, today } = useStore()
+  const { fishOf } = useStore()
   const f = fishOf(p.id)
   const prog = levelProgress(f.xp, f.level)
-  const capped = !couple?.aquarium_bought && f.level_uncapped > LEVEL_CAP_WITHOUT_AQUARIUM
+  const capped = f.level_uncapped > f.level
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-      <span style={{ fontSize: 15, fontWeight: 800 }}>{p.fish_name}, à {owner}</span>
-      <span className="small" style={{ fontWeight: 700 }}>{stadeName(f.level)}, niveau {f.level}, {MOOD_LABEL[moodOf(tasks, today, p.id)]}</span>
+      <span style={{ fontSize: 15, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.fish_name}, à {owner}</span>
+      <span className="small" style={{ fontWeight: 700 }}>{stadeName(f.level)}, niveau {f.level}</span>
       <Bar ratio={capped ? 1 : prog.ratio} color={PALETTES[p.fish_color]?.b} thin />
-      <span className="small">{capped ? `${f.xp} XP, en réserve` : `${prog.into} / ${prog.needed} XP`}</span>
+      <span className="small">{capped ? 'XP en réserve' : `${prog.into} / ${prog.needed} XP`}</span>
     </div>
   )
 }
 
-const scaleOf = (level: number) => 1 + (stadeOf(level) - 1) * 0.3
+/** Fiche complète d'un poisson : stade, XP, humeur, prochain stade en silhouette */
+function FishSheet({ p, owner }: { p: Profile; owner: string }) {
+  const { fishOf, tasks, today } = useStore()
+  const f = fishOf(p.id)
+  const prog = levelProgress(f.xp, f.level)
+  const capped = f.level_uncapped > f.level
+  const next = nextStade(f.level)
+  const mood = moodOf(tasks, today, p.id)
+  return (
+    <section aria-label={`Fiche de ${p.fish_name}`} className="card pad stack" style={{ gap: 10 }}>
+      <div className="fish-sheet">
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span className="h2" style={{ fontSize: 16 }}>{p.fish_name}, à {owner}</span>
+          <span className="small" style={{ fontWeight: 700 }}>{stadeName(f.level)}, niveau {f.level}, {MOOD_LABEL[mood]}</span>
+          <Bar ratio={capped ? 1 : prog.ratio} color={PALETTES[p.fish_color]?.b} />
+          <span className="small">
+            {capped
+              ? `${f.xp} XP : niveau ${f.level_uncapped} dès le prochain habitat`
+              : prog.needed ? `${prog.into} / ${prog.needed} XP jusqu’au niveau ${f.level + 1}` : 'Niveau maximum, bravo'}
+          </span>
+        </div>
+        {next && (
+          <div className="next-stade" aria-label={`Prochain stade : ${next.name} au niveau ${next.level}`}>
+            <Fish color={p.fish_color} stade={stadeOf(next.level)} width={52} silhouette />
+            <span className="small" style={{ fontWeight: 800 }}>{next.name}</span>
+            <span className="small">niv. {next.level}</span>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
 
 export function Aquarium({ openShop }: { openShop: () => void }) {
-  const { me, partner, partnerName, fishOf, userId, couple, coupleItems, pot, tasks, today } = useStore()
-  if (!me) return null
-  const myFish = fishOf(userId)
-  const aquarium = Boolean(couple?.aquarium_bought)
-  const season = seasonOf(today)
+  const { me, partner, partnerName, fishOf, userId, couple, coupleItems, tasks, today } = useStore()
+  const [view, setView] = useState<View>('duo')
   const [recap, setRecap] = useState(false)
+  if (!me) return null
+
+  const myFish = fishOf(userId)
+  const position = couple?.habitat ?? 0
+  const habitat = habitatOf(position)
+  const nextHabitat = HABITATS[position + 1]
+  const season = seasonOf(today)
   const owners = [{ p: me, owner: me.display_name || 'moi' }, ...(partner ? [{ p: partner, owner: partnerName }] : [])]
+  const solo = view === 'me' ? owners[0] : view === 'partner' && owners[1] ? owners[1] : null
+
+  const fishProps = (p: Profile) => {
+    const level = fishOf(p.id).level
+    return { color: p.fish_color, hat: seasonalHat(p.fish_hat, season), pet: p.fish_pet, name: p.fish_name,
+      mood: moodOf(tasks, today, p.id), stade: stadeOf(level), scale: scaleOf(level) }
+  }
 
   return (
     <div className="screen">
       <header className="head">
         <div className="head-left">
-          <p className="kicker">{aquarium ? 'Notre grand aquarium' : 'Nos deux bocaux'}</p>
+          <p className="kicker">{habitat.name}</p>
           <h1 className="title">Aquarium</h1>
         </div>
         <span className="pill" aria-label={`${myFish.coins ?? 0} pièces`}><Coin /><span>{myFish.coins ?? 0}</span></span>
       </header>
 
-      <section aria-label="Vos poissons" className="card pad stack" style={{ gap: 14 }}>
-        {aquarium ? (
-          <Tank
-            fishes={owners.map(({ p }) => ({ color: p.fish_color, hat: seasonalHat(p.fish_hat, season), pet: p.fish_pet, scale: scaleOf(fishOf(p.id).level), name: p.fish_name, mood: moodOf(tasks, today, p.id) }))}
-            decor={coupleItems.map((c) => c.item_id)}
-            noel={season === 'noel'}
-          />
+      <section aria-label="Vos poissons" className="stack" style={{ gap: 10 }}>
+        {solo ? (
+          <SoloFish {...fishProps(solo.p)} habitat={position} />
+        ) : position >= 1 ? (
+          <Tank tall habitat={position} habitatName={habitat.name} fishes={owners.map(({ p }) => fishProps(p))}
+            decor={coupleItems.map((c) => c.item_id)} noel={season === 'noel'} />
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: partner ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: 14 }}>
-            {owners.map(({ p }, i) => (
-              <Bowl key={p.id} noel={season === 'noel'} color={p.fish_color} hat={seasonalHat(p.fish_hat, season)} pet={p.fish_pet} style={p.bowl_style}
-                scale={scaleOf(fishOf(p.id).level)} name={p.fish_name} flip={i === 1} mood={moodOf(tasks, today, p.id)} />
-            ))}
+          <div className={`scene-bowls${partner ? '' : ' single'}`}>
+            {owners.map(({ p }, i) => {
+              const fp = fishProps(p)
+              return <Bowl key={p.id} noel={season === 'noel'} style={p.bowl_style} flip={i === 1} {...fp} scale={fp.scale * 1.3} />
+            })}
           </div>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: partner ? 'repeat(2, minmax(0, 1fr))' : '1fr', gap: 14 }}>
-          {owners.map(({ p, owner }) => <FishInfo key={p.id} p={p} owner={owner} />)}
-        </div>
-        <span className="small" style={{ textAlign: 'center' }}>Touche {aquarium ? 'l’aquarium' : 'un bocal'} pour dire coucou.</span>
+        {partner && (
+          <div className="seg" role="group" aria-label="Qui regarder">
+            <button type="button" aria-pressed={view === 'duo'} onClick={() => setView('duo')}>Ensemble</button>
+            <button type="button" aria-pressed={view === 'me'} onClick={() => setView('me')}>{me.fish_name || 'Moi'}</button>
+            <button type="button" aria-pressed={view === 'partner'} onClick={() => setView('partner')}>{partner.fish_name || partnerName}</button>
+          </div>
+        )}
       </section>
 
-      {!aquarium ? (
-        <section aria-label="Grand aquarium commun" className="card pad cream stack">
-          <div className="head-row" style={{ gap: 10 }}>
-            <Icon name="lock" />
-            <h2 className="h2" style={{ flex: 1 }}>Grand aquarium commun</h2>
-            <span style={{ fontFamily: 'var(--pixel)', fontSize: 10, color: 'var(--cream-ink)' }}>{pot}/120</span>
-          </div>
-          <Bar ratio={Math.min(1, pot / 120)} color="var(--sand)" />
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.45, color: 'var(--cream-ink)' }}>
-            Indispensable pour passer au stade Moyen, au niveau 7. Il s’achète tout seul quand la cagnotte atteint 120 pièces, et vos deux poissons y vivront ensemble.
-          </p>
-          <button type="button" className="btn primary" onClick={openShop}>Verser des pièces</button>
+      {solo ? (
+        <FishSheet p={solo.p} owner={solo.owner} />
+      ) : partner ? (
+        <section aria-label="Vos deux poissons" className="card pad duo-sheets">
+          {owners.map(({ p, owner }) => <FishInfo key={p.id} p={p} owner={owner} />)}
         </section>
       ) : (
-        <section aria-label="Cagnotte commune" className="card pad cream" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span className="h2" style={{ fontSize: 15 }}>Cagnotte commune : {pot} pièces</span>
-            <span className="small" style={{ color: 'var(--cream-ink)' }}>Pour les décorations de l’aquarium.</span>
-          </div>
-          <button type="button" className="btn small primary" onClick={openShop}>Boutique</button>
-        </section>
+        <FishSheet p={me} owner={owners[0].owner} />
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <button type="button" className="btn" onClick={openShop}><Coin />Boutique</button>
-        <button type="button" className="btn" onClick={() => setRecap(true)}>Récap {monthName(today)}</button>
-      </div>
-      {recap && <MonthRecapSheet month={`${today.slice(0, 7)}-01`} onClose={() => setRecap(false)} />}
-
-      <section aria-label="Les stades" className="card pad stack">
-        <h2 className="h2">Les stades</h2>
-        <ul className="list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[['Alevin', '1 à 3'], ['Petit', '4 à 6'], ['Moyen', '7 à 9, grand aquarium'], ['Grand', '10 à 12'], ['Majestueux', '13 à 15']].map(([n, l]) => (
-            <li key={n} className="row-between" style={{ fontSize: 14 }}>
-              <span style={{ fontWeight: 800 }}>{n}</span>
-              <span className="small">niveaux {l}</span>
-            </li>
-          ))}
-        </ul>
+      <section aria-label="Notre habitat" className="card pad cream" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span className="h2" style={{ fontSize: 15 }}>{nextHabitat ? `Prochain habitat : ${nextHabitat.name}` : 'Vous vivez dans le lagon'}</span>
+          <span className="small" style={{ color: 'var(--cream-ink)' }}>
+            {nextHabitat
+              ? `Vos deux poissons au niveau ${nextHabitat.minLevel} et ${nextHabitat.price} pièces dans la cagnotte.`
+              : 'Le plus bel habitat, jusqu’au niveau 50.'}
+          </span>
+        </div>
+        <button type="button" className="btn small primary" onClick={openShop}>Boutique</button>
       </section>
+
+      <button type="button" className="btn" onClick={() => setRecap(true)}>Récap {monthName(today)}</button>
+      {recap && <MonthRecapSheet month={`${today.slice(0, 7)}-01`} onClose={() => setRecap(false)} />}
     </div>
   )
 }

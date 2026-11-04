@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../lib/store'
 import { DAY_LETTERS, dayName, dayNumber, longDay, weekDays, weekStart } from '../lib/dates'
-import { LEVEL_CAP_WITHOUT_AQUARIUM, levelProgress, stadeName } from '../lib/xp'
+import { HABITATS, levelProgress, stadeName, stadeOf } from '../lib/xp'
 import { missedThisWeek, tasksOfDay } from '../lib/tasks'
 import { MOOD_LABEL, moodOf } from '../lib/mood'
 import { seasonalHat, seasonOf } from '../lib/season'
@@ -26,7 +26,8 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
 
   const fish = fishOf(userId)
   const progress = levelProgress(fish.xp, fish.level)
-  const capped = !couple?.aquarium_bought && fish.level_uncapped > LEVEL_CAP_WITHOUT_AQUARIUM
+  const capped = fish.level_uncapped > fish.level
+  const nextHabitat = HABITATS[(couple?.habitat ?? 0) + 1]
   const ownerId = who === 'me' ? userId : partner?.id || ''
   const list = tasksOfDay(tasks, day, ownerId).sort((a, b) => Number(Boolean(a.done_at)) - Number(Boolean(b.done_at)))
   const done = list.filter((t) => t.done_at).length
@@ -52,14 +53,14 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
       </header>
 
       <div className="card xp-card">
-        <div className="fish-tile"><Fish color={me.fish_color} hat={seasonalHat(me.fish_hat, seasonOf(today))} width={39} mood={mood} label={`${me.fish_name} ${MOOD_LABEL[mood]}`} /></div>
+        <div className="fish-tile"><Fish color={me.fish_color} hat={seasonalHat(me.fish_hat, seasonOf(today))} width={39} stade={stadeOf(fish.level)} mood={mood} label={`${me.fish_name} ${MOOD_LABEL[mood]}`} /></div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div className="row-between">
             <span style={{ fontSize: 15, fontWeight: 800 }}>{me.fish_name}, {stadeName(fish.level).toLowerCase()} niv. {fish.level}</span>
             <span className="meta">{capped ? `${fish.xp} XP` : `${progress.into} / ${progress.needed} XP`}</span>
           </div>
           <Bar ratio={capped ? 1 : progress.ratio} />
-          {capped && <span className="small">XP en réserve : il faut le grand aquarium pour grandir.</span>}
+          {capped && <span className="small">XP en réserve : il faut {nextHabitat ? `l’habitat « ${nextHabitat.name} »` : 'l’habitat suivant'} pour grandir.</span>}
         </div>
       </div>
 

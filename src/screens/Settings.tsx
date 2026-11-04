@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, errorText } from '../lib/supabase'
 import { useStore } from '../lib/store'
+import { stadeOf } from '../lib/xp'
 import type { FishColor, Profile } from '../lib/types'
 import { FREE_COLORS, Fish, PALETTES } from '../components/Fish'
 import { Icon, Switch } from '../components/ui'
@@ -9,7 +10,7 @@ import type { PushState } from '../lib/push'
 import { widgetScript } from '../lib/widgetScript'
 
 export function Settings({ onBack, openShop }: { onBack: () => void; openShop: () => void }) {
-  const { me, partner, couple, force, run, reload, partnerName, purchases } = useStore()
+  const { me, partner, couple, force, run, reload, partnerName, purchases, fishOf, userId } = useStore()
   const [fishName, setFishName] = useState(me?.fish_name || '')
   const [color, setColor] = useState<FishColor>(me?.fish_color || 'corail')
   const [displayName, setDisplayName] = useState(me?.display_name || '')
@@ -54,7 +55,7 @@ export function Settings({ onBack, openShop }: { onBack: () => void; openShop: (
       <section aria-label="Mon poisson" className="card pad stack" style={{ gap: 14 }}>
         <h2 className="h2">Mon poisson</h2>
         <div style={{ height: 96, background: 'var(--water)', border: '2px solid var(--ink)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Fish color={color} hat={me.fish_hat} width={90} label={`Aperçu de ${fishName || 'ton poisson'}`} />
+          <Fish color={color} hat={me.fish_hat} stade={stadeOf(fishOf(userId).level)} width={90} label={`Aperçu de ${fishName || 'ton poisson'}`} />
         </div>
         <div className="field">
           <label htmlFor="fish-name">Surnom du poisson</label>

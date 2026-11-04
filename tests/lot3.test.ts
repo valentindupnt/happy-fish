@@ -28,8 +28,8 @@ describe('Happy Fish, lot 3', () => {
   it('l’XP en réserve rapporte des pièces : la cagnotte ne peut plus se bloquer', async () => {
     await admin(`insert into public.xp_events (profile_id, amount, reason) values ($1, 900, 'treat')`, [VAL])
     const [f] = await as<{ level: number; level_uncapped: number }>(VAL, `select level, level_uncapped from public.fish_status where profile_id = auth.uid()`)
-    expect(f).toEqual({ level: 6, level_uncapped: 7 })
-    expect(await coins(VAL)).toBe(110) // niveau 7 : 10 x 6 + 25 x 2
+    expect(f).toEqual({ level: 10, level_uncapped: 14 })
+    expect(await coins(VAL)).toBe(180) // 900 XP : 1 pièce pour 5 XP, réserve comprise
   })
 
   it('séries : un fait prolonge, un raté passé casse, un retiré ou un à venir ne compte pas', async () => {
@@ -91,16 +91,17 @@ describe('Happy Fish, lot 3', () => {
     await expect(as(OTHER, `insert into public.challenges (couple_id, created_by, title) values ($1, auth.uid(), 'intrus')`, [couple])).rejects.toThrow()
   })
 
-  it('les pièces de défi peuvent déclencher l’achat du grand aquarium', async () => {
-    const left = 120 - (await pot(VAL)) - 10
+  it('les pièces de défi remplissent la cagnotte sans rien acheter tout seul', async () => {
+    const left = 150 - (await pot(VAL)) - 10
     await as(VAL, `select public.contribute($1)`, [left])
     const [{ id: ch }] = await as<{ id: string }>(VAL, `select id from public.challenges limit 1`)
     await admin(`insert into public.challenge_rolls (couple_id, week_start, challenge_id, title) values ($1, '2020-01-06', $2, 'ancien')`, [couple, ch])
     const [{ id: roll }] = await as<{ id: string }>(VAL, `select id from public.challenge_rolls where week_start = '2020-01-06'`)
     await as(VAL, `select public.complete_challenge($1)`, [roll])
-    const [c] = await as<{ aquarium_bought: boolean }>(VAL, `select aquarium_bought from public.couples`)
-    expect(c.aquarium_bought).toBe(true)
-    expect(await pot(VAL)).toBe(0)
+    const [c] = await as<{ habitat: number }>(VAL, `select habitat from public.couples`)
+    expect(c.habitat).toBe(0)
+    expect(await pot(VAL)).toBe(150)
+    await expect(as(VAL, `select public.buy_habitat()`)).rejects.toThrow(/niveau 8/) // Julie est encore niveau 1
   })
 
   it('idées de surprises : partagées dans le duo, invisibles ailleurs', async () => {

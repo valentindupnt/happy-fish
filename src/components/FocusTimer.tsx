@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
+import { stadeOf } from '../lib/xp'
 import { celebrate } from '../lib/fx'
 import { Fish } from './Fish'
 
@@ -66,7 +67,7 @@ function chime() {
 }
 
 export function FocusTimer({ focus, onClose }: { focus: FocusState; onClose: () => void }) {
-  const { me, goalOf, tasks, run, reloadTasks, reload } = useStore()
+  const { me, goalOf, tasks, run, reloadTasks, reload, fishOf, userId } = useStore()
   const [f, setF] = useState<FocusState>(focus)
   const [now, setNow] = useState(Date.now())
   const [finished, setFinished] = useState(false)
@@ -139,7 +140,7 @@ export function FocusTimer({ focus, onClose }: { focus: FocusState; onClose: () 
     <div className={`focus${paused ? ' is-paused' : ''}`} role="dialog" aria-modal="true" aria-label="Minuteur">
       <div className="focus-swim-x" aria-hidden="true">
         <div className="focus-swim-y">
-          <Fish color={me?.fish_color || 'corail'} hat={me?.fish_hat} width={96} mood={finished ? 'happy' : 'normal'} />
+          <Fish color={me?.fish_color || 'corail'} hat={me?.fish_hat} stade={stadeOf(fishOf(userId).level)} width={96} mood={finished ? 'happy' : 'normal'} />
         </div>
       </div>
       <div className="focus-bubble focus-bubble-a" />

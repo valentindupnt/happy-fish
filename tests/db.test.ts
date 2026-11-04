@@ -118,12 +118,12 @@ describe('Happy Fish, règles de la base', () => {
     await expect(as(VAL, `select public.generate_goal_tasks(gen_random_uuid(), $1::date)`, [d])).rejects.toThrow(/permission/)
   })
 
-  it('friandise : +2 XP pour l’autre, 3 par jour au maximum', async () => {
+  it('friandise : +1 XP pour l’autre, 3 par jour au maximum', async () => {
     const before = await xpOf(JULIE)
     await as(VAL, `select public.send_treat()`)
     await as(VAL, `select public.send_treat()`)
     await as(VAL, `select public.send_treat()`)
-    expect((await xpOf(JULIE)) - before).toBe(6)
+    expect((await xpOf(JULIE)) - before).toBe(3)
     await expect(as(VAL, `select public.send_treat()`)).rejects.toThrow(/demain/)
   })
 
@@ -144,22 +144,22 @@ describe('Happy Fish, règles de la base', () => {
     await expect(as(OTHER, `select public.toggle_task($1)`, [task.id])).rejects.toThrow(/introuvable/)
   })
 
-  it('sans grand aquarium, le poisson reste au niveau 6 et garde l’XP en réserve', async () => {
+  it('dans les deux bocaux, le poisson reste au niveau 10 et garde l’XP en réserve', async () => {
     await admin(`insert into public.xp_events (profile_id, amount, reason) values ($1, 2000, 'treat')`, [VAL])
     const [fish] = await as<{ level: number; level_uncapped: number }>(VAL,
       `select level, level_uncapped from public.fish_status where profile_id = auth.uid()`)
-    expect(fish.level).toBe(6)
-    expect(fish.level_uncapped).toBeGreaterThan(6)
-    await admin(`update public.couples set aquarium_bought = true where id = (select couple_id from public.profiles where id = $1)`, [VAL])
+    expect(fish.level).toBe(10)
+    expect(fish.level_uncapped).toBeGreaterThan(20)
+    await admin(`update public.couples set habitat = 2 where id = (select couple_id from public.profiles where id = $1)`, [VAL])
     const [after] = await as<{ level: number }>(VAL, `select level from public.fish_status where profile_id = auth.uid()`)
     expect(after.level).toBe(fish.level_uncapped)
   })
 
   it('les paliers de niveau suivent le barème du cadrage', async () => {
-    const rows = await admin<{ l1: number; l2: number; l4: number; l7: number; l13: number }>(
+    const rows = await admin<{ l1: number; l2: number; l4: number; l7: number; l13: number; l50: number }>(
       `select public.xp_to_reach(1) as l1, public.xp_to_reach(2) as l2, public.xp_to_reach(4) as l4,
-              public.xp_to_reach(7) as l7, public.xp_to_reach(13) as l13`)
-    expect(rows[0]).toEqual({ l1: 0, l2: 60, l4: 270, l7: 810, l13: 2700 })
+              public.xp_to_reach(7) as l7, public.xp_to_reach(13) as l13, public.xp_to_reach(50) as l50`)
+    expect(rows[0]).toEqual({ l1: 0, l2: 30, l4: 108, l7: 270, l13: 756, l50: 8526 })
   })
 
   it('arrêter un objectif garde l’XP gagnée et retire les occurrences à venir', async () => {

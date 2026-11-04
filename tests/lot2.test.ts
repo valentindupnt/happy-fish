@@ -22,21 +22,21 @@ describe('Happy Fish, lot 2', () => {
     await as(OTHER, `select public.create_couple('Autre')`)
   })
 
-  it('les pièces suivent les niveaux : 10 par niveau, +25 par stade', async () => {
+  it('les pièces suivent l’XP : 1 pièce pour 5 XP', async () => {
     expect(await coins(VAL)).toBe(0)
-    await giveXp(VAL, 300) // niveau 4 (270 XP), stade Petit
-    expect(await coins(VAL)).toBe(55)
+    await giveXp(VAL, 300) // niveau 7
+    expect(await coins(VAL)).toBe(60)
   })
 
   it('acheter une couleur retire les pièces, une seule fois', async () => {
     const [{ left }] = await as<{ left: number }>(VAL, `select public.buy_item('amethyste') as left`)
-    expect(left).toBe(40)
+    expect(left).toBe(45)
     await expect(as(VAL, `select public.buy_item('amethyste')`)).rejects.toThrow(/déjà/)
   })
 
   it('un objet au-dessus de son niveau est refusé', async () => {
-    await expect(as(VAL, `select public.buy_item('or')`)).rejects.toThrow(/niveau 6/)
-    await expect(as(VAL, `select public.buy_item('crevette')`)).rejects.toThrow(/niveau 8/)
+    await expect(as(VAL, `select public.buy_item('or')`)).rejects.toThrow(/niveau 30/)
+    await expect(as(VAL, `select public.buy_item('crevette')`)).rejects.toThrow(/niveau 12/)
   })
 
   it('pas assez de pièces : refusé', async () => {
@@ -54,40 +54,43 @@ describe('Happy Fish, lot 2', () => {
     expect(p).toEqual({ fish_hat: 'bandeau', fish_color: 'lagon' })
   })
 
-  it('les décorations communes attendent le grand aquarium', async () => {
-    await expect(as(VAL, `select public.buy_decor('plante')`)).rejects.toThrow(/grand aquarium/)
+  it('les décorations communes attendent l’aquarium à deux', async () => {
+    await expect(as(VAL, `select public.buy_decor('plante')`)).rejects.toThrow(/Aquarium à deux/)
   })
 
-  it('la cagnotte achète le grand aquarium toute seule à 120 pièces', async () => {
-    await giveXp(JULIE, 610) // niveau 6, plafond sans aquarium : 75 pièces
-    expect(await coins(JULIE)).toBe(75)
+  it('l’aquarium à deux s’achète ensemble : les deux poissons au niveau 8 et 150 pièces', async () => {
+    await giveXp(JULIE, 610) // niveau 11, plafonné à 10 dans les bocaux : 122 pièces
+    expect(await coins(JULIE)).toBe(122)
     await expect(as(VAL, `select public.contribute(999)`)).rejects.toThrow(/Pas assez/)
     await as(VAL, `select public.contribute(20)`)
-    const [{ pot }] = await as<{ pot: number }>(JULIE, `select public.contribute(75) as pot`)
-    expect(pot).toBe(95)
-    await giveXp(VAL, 400) // niveau 6 : 75 pièces gagnées, 35 dépensées, 20 versées
-    expect(await coins(VAL)).toBe(20)
-    const [{ pot: p2 }] = await as<{ pot: number }>(VAL, `select public.contribute(15) as pot`)
-    expect(p2).toBe(110)
-    const [c0] = await as<{ aquarium_bought: boolean }>(VAL, `select aquarium_bought from public.couples`)
-    expect(c0.aquarium_bought).toBe(false)
-    // 5 pièces de plus (versement simulé), puis le versement qui fait passer à 120
-    await admin(`insert into public.pot_events (couple_id, amount, reason) select couple_id, 5, 'contribution' from public.profiles where id = $1`, [VAL])
-    const [{ pot: after }] = await as<{ pot: number }>(VAL, `select public.contribute(5) as pot`)
-    expect(after).toBe(0)
-    const [c] = await as<{ aquarium_bought: boolean }>(VAL, `select aquarium_bought from public.couples`)
-    expect(c.aquarium_bought).toBe(true)
+    const [{ pot }] = await as<{ pot: number }>(JULIE, `select public.contribute(122) as pot`)
+    expect(pot).toBe(142)
+    // la cagnotte ne déclenche plus d'achat toute seule
+    const [c0] = await as<{ habitat: number }>(VAL, `select habitat from public.couples`)
+    expect(c0.habitat).toBe(0)
+    await expect(as(VAL, `select public.buy_habitat()`)).rejects.toThrow(/niveau 8/) // Valentin est niveau 7
+    await giveXp(VAL, 100) // 400 XP : niveau 8, 20 pièces de plus
+    await expect(as(VAL, `select public.buy_habitat()`)).rejects.toThrow(/cagnotte/)
+    await as(VAL, `select public.contribute(8)`)
+    const [{ h }] = await as<{ h: number }>(JULIE, `select public.buy_habitat() as h`)
+    expect(h).toBe(1)
+    const [c] = await as<{ habitat: number; aquarium_bought: boolean }>(VAL, `select habitat, aquarium_bought from public.couples`)
+    expect(c).toEqual({ habitat: 1, aquarium_bought: true })
+    const [{ p }] = await as<{ p: number }>(VAL, `select public.get_pot() as p`)
+    expect(p).toBe(0)
+    await expect(as(VAL, `select public.buy_habitat()`)).rejects.toThrow(/niveau 18/)
   })
 
-  it('avec le grand aquarium, l’XP en réserve fait monter le niveau', async () => {
-    await giveXp(JULIE, 300) // 910 XP : niveau 7, bloqué à 6 sans aquarium
+  it('avec l’aquarium à deux, l’XP en réserve fait monter le niveau', async () => {
     const [f] = await as<{ level: number }>(JULIE, `select level from public.fish_status where profile_id = auth.uid()`)
-    expect(f.level).toBe(7)
+    expect(f.level).toBe(11)
   })
 
-  it('les décorations se paient avec la cagnotte', async () => {
+  it('les décorations se paient avec la cagnotte, et celles du récif attendent le récif', async () => {
     await expect(as(VAL, `select public.buy_decor('chateau')`)).rejects.toThrow(/cagnotte/)
-    await as(JULIE, `select public.contribute(10)`)
+    await expect(as(VAL, `select public.buy_decor('corail')`)).rejects.toThrow(/Récif/)
+    await giveXp(JULIE, 100) // 20 pièces
+    await as(JULIE, `select public.contribute(15)`)
     const [{ pot }] = await as<{ pot: number }>(VAL, `select public.buy_decor('plante') as pot`)
     expect(pot).toBe(0)
     const items = await as<{ item_id: string }>(JULIE, `select item_id from public.couple_items`)

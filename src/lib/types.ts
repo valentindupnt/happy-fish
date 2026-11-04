@@ -22,6 +22,8 @@ export interface Couple {
   id: string
   invite_code: string
   aquarium_bought: boolean
+  /** Position de l'habitat du duo : 0 bocaux, 1 aquarium à deux, 2 grand aquarium, 3 récif, 4 lagon */
+  habitat: number
 }
 
 export interface Category {
@@ -106,6 +108,8 @@ export interface ShopItem {
   min_level: number
   scope: 'perso' | 'commun'
   position: number
+  /** Décorations : habitat à partir duquel on peut l'acheter */
+  habitat: number
 }
 
 export interface Purchase {

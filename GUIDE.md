@@ -1,6 +1,6 @@
 # Happy Fish : guide de mise en route et de reprise
 
-*Application d'objectifs à deux, avec un poisson pixel art qui grandit. Version 1, lots 1, 2 et 3.*
+*Application d'objectifs à deux, avec un poisson pixel art qui grandit. Version 1, lots 1, 2 et 3, puis progression longue (migration 006).*
 
 ## 1. En bref
 
@@ -43,10 +43,12 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 | **Ma semaine** | Vue jour par jour, vue mois, préparation de la semaine, ajout sur un jour précis, semaine de Julie |
 | **Ensemble** | Défi de la semaine tiré au dé, objectifs communs (XP pour les deux), envies avec notes et lien, roue des surprises |
 | **Petits mots** | Chat en direct, bulles, friandises (+2 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif |
-| **Aquarium** | Les deux bocaux, puis le grand aquarium commun avec ses décorations (on les touche pour dire coucou), la cagnotte, le récap du mois, stades et niveaux |
-| **Boutique** | Couleurs, bocaux, habits et accessoires, familiers, cagnotte commune, décorations |
+| **Aquarium** | La scène de l'habitat en grand (bocaux, puis aquarium, récif, lagon), « Ensemble » ou gros plan sur un poisson, sa fiche avec la silhouette du prochain stade, le prochain habitat, le récap du mois |
+| **Boutique** | « Notre habitat » en tête (conditions, cagnotte, achat ensemble), couleurs, bocaux, habits et accessoires, familiers, décorations par habitat |
 | **Paramètres** | Surnom et couleur du poisson, surnoms, messages de force, notifications, widget de l'écran d'accueil, changement de mot de passe, déconnexion |
 | **Fiche d'un sous-objectif** | Minuteur plein écran : écran noir, le poisson nage, le sous-objectif se coche tout seul à la fin |
+
+**Progression longue (migration 006)** : 50 niveaux, 10 stades dessinés, 5 habitats achetés ensemble, écran Aquarium centré sur les poissons. Le carnet du récif (visiteurs à collectionner) est prévu au lot suivant.
 
 **Lot 3** : humeurs du poisson (il dort de 22 h à 7 h, danse quand la journée est complète, boude à partir de 2 ratés dans la semaine), séries, minuteur, dé des défis, roue des surprises, décor de Noël en décembre (neige, sapin, bonnet pour les poissons sans accessoire), récap du mois, mode hors ligne, widget.
 
@@ -63,17 +65,18 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 | Décocher | Retire l'XP correspondante |
 | Cocher | Seulement ses objectifs ou les communs, et pas un jour à venir |
 | Reporter | Vers aujourd'hui ou un jour à venir, jamais dans le passé |
-| Niveaux | 60 XP pour le niveau 2, puis 30 XP de plus à chaque niveau, 15 niveaux, 5 stades |
-| Grand aquarium | Sans lui, le poisson reste au niveau 6 et l'XP s'accumule en réserve |
+| Niveaux | 30 XP pour le niveau 2, puis 6 XP de plus à chaque niveau, 50 niveaux, 10 stades de 5 niveaux (Alevin, Petit, Juvénile, Moyen, Grand, Adulte, Majestueux, Ancien, Légendaire, Mythique). Chaque stade ajoute un détail au dessin |
+| Habitats | Deux bocaux (plafond niveau 10), Aquarium à deux (les deux au niveau 8, 150 pièces, plafond 20), Grand aquarium (18, 350, plafond 30), Récif (28, 500, plafond 40), Lagon (38, 700, plafond 50). Au-dessus du plafond, l'XP s'accumule en réserve |
 | Ratés | Sous-objectifs des jours passés de la semaine, ni faits ni retirés. Un raté reporté puis fait ne compte pas |
+| Friandise | +1 XP pour le poisson de l'autre, 3 par jour |
 | Surprise | Calculée le lundi matin : 3 ratés ou plus la semaine passée, et on doit une surprise à l'autre. Seul celui qui la reçoit peut la marquer comme reçue |
-| Pièces | 10 par niveau, 25 de plus à chaque nouveau stade, moins les achats et les versements à la cagnotte. Elles suivent le niveau réel : l'XP en réserve rapporte aussi des pièces, donc la cagnotte ne peut pas se bloquer |
+| Pièces | 1 pièce pour 5 XP gagnés, moins les achats et les versements à la cagnotte. L'XP en réserve rapporte aussi des pièces, donc la cagnotte ne peut pas se bloquer |
 | Séries | Sous-objectifs d'un objectif récurrent faits d'affilée. Reporté puis fait : la série continue. Raté (jour passé, pas fait) : retour à zéro. Retiré, ou aujourd'hui pas encore fait : sans effet |
-| Défi de la semaine | Un seul lancer de dé par semaine, parmi les défis de la liste commune. Défi réussi : 10 pièces dans la cagnotte (et l'aquarium s'achète tout seul si elle atteint 120) |
+| Défi de la semaine | Un seul lancer de dé par semaine, parmi les défis de la liste commune. Défi réussi : 10 pièces dans la cagnotte |
 | Roue des surprises | Tire une idée au hasard dans la liste commune. Le résultat n'est enregistré nulle part |
 | Hors ligne | L'app s'ouvre avec les dernières données. Les coches attendent le retour du réseau puis partent toutes seules ; les autres actions demandent le réseau |
 | Boutique | Chaque objet s'achète une fois, à partir d'un certain niveau. On ne peut équiper que ce qu'on possède |
-| Cagnotte | Chacun y verse ses pièces. À 120, le grand aquarium s'achète tout seul et débloque le niveau 7. Ensuite, elle sert aux décorations communes |
+| Cagnotte | Chacun y verse ses pièces. L'habitat suivant s'achète d'un bouton dans la Boutique, par l'un ou l'autre, quand les deux poissons ont le niveau requis et que la cagnotte suffit. Elle sert aussi aux décorations, chaque habitat ouvrant les siennes |
 
 Personne ne peut modifier l'XP, une coche ou les données de l'autre en contournant l'app : ces actions passent par des fonctions de la base qui vérifient tout.
 
@@ -85,7 +88,7 @@ Personne ne peut modifier l'XP, une coche ou les données de l'autre en contourn
 | L'apparence, un écran | Le code, poussé sur `main` : Vercel redéploie en 1 à 2 minutes |
 | Une règle de la base | Un fichier de migration (voir ci-dessous) |
 
-**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql` et `005_widget.sql` sont déjà appliquées sur le projet `happy-fish`.
+**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql` et `006_progression.sql` sont déjà appliquées sur le projet `happy-fish`.
 
 ### Le widget, côté coulisses
 - Le widget passe par l'app gratuite **Scriptable**. Dans Paramètres, **Installer le widget** donne les étapes et copie un script qui contient une clé personnelle.
@@ -116,7 +119,7 @@ npm run build                # vérification complète
 | `src/screens/` | Les écrans |
 | `src/components/` | Poisson pixel art, bocal, ajout d'objectif, fiche d'un sous-objectif |
 | `src/lib/store.tsx` | Chargement des données et mises à jour en direct |
-| `src/lib/xp.ts` | Barème XP et niveaux (le même que dans la base) |
+| `src/lib/xp.ts` | Barème XP, stades, habitats et pièces (les mêmes que dans la base, vérifiés par `tests/progression.test.ts`) |
 | `src/lib/push.ts`, `public/sw.js` | Abonnement aux notifications et leur affichage sur le téléphone |
 | `supabase/schema.sql` | Tables, sécurité, règles |
 | `supabase/seed.sql` | Catégories et suggestions de départ |
@@ -125,7 +128,7 @@ npm run build                # vérification complète
 | `supabase/functions/widget/` | Données du widget de l'écran d'accueil |
 | `src/lib/mood.ts`, `src/lib/fx.ts`, `src/lib/season.ts` | Humeurs du poisson, bulles, décor de saison |
 | `src/lib/widgetScript.ts` | Script Scriptable généré avec la clé de chacun |
-| `tests/` | 44 tests (`db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
+| `tests/` | 50 tests (`db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
 
 ## 7. Dépannage
 
