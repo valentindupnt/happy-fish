@@ -1,5 +1,5 @@
 // Happy Fish : service worker (notifications et ouverture sans réseau)
-const SHELL = 'hf-shell-v1'
+const SHELL = 'hf-shell-v2'
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => {
@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname === '/manifest.webmanifest') {
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/gifs/') || url.pathname === '/manifest.webmanifest') {
     event.respondWith(
       caches.match(req).then((hit) => hit || fetch(req).then((res) => {
         if (res.ok) {

@@ -7,13 +7,14 @@ import { dateOfTimestamp, longDay, timeLabel } from '../lib/dates'
 import { PHOTO_BUCKET, photoPath, photoRatio, preparePhoto, usePhotoUrls } from '../lib/photos'
 import type { PreparedPhoto } from '../lib/photos'
 import { Fish } from '../components/Fish'
+import { GIF_SERIES, gifLabel, gifSrc, isKnownGif } from '../lib/gifs'
 import { BubbleIcon, Icon, TreatIcon } from '../components/ui'
 
 // Un message envoyé s'affiche tout de suite, avant la réponse du serveur
 interface Pending {
   tempId: string
   realId?: string
-  kind: 'text' | 'image'
+  kind: 'text' | 'image' | 'gif'
   body: string | null
   taskId: string | null
   createdAt: string
@@ -24,7 +25,7 @@ interface Pending {
 interface Item {
   key: string
   mine: boolean
-  kind: 'text' | 'image' | 'bubble' | 'treat'
+  kind: 'text' | 'image' | 'gif' | 'bubble' | 'treat'
   body: string | null
   taskId: string | null
   createdAt: string
@@ -35,7 +36,7 @@ interface Item {
 }
 
 const GROUP_GAP = 5 * 60 * 1000
-const isWord = (i: Item) => i.kind === 'text' || i.kind === 'image'
+const isWord = (i: Item) => i.kind === 'text' || i.kind === 'image' || i.kind === 'gif'
 const touch = typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches ?? false)
 
 export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearRef: () => void }) {
@@ -45,6 +46,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
   const [photo, setPhoto] = useState<PreparedPhoto | null>(null)
   const [viewing, setViewing] = useState<string | null>(null)
   const [jump, setJump] = useState(false)
+  const [gifsOpen, setGifsOpen] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -169,6 +171,21 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
     if (!id) { setPhoto(ph); setText((t) => t || caption || '') }
   }
 
+  const sendGif = async (id: string) => {
+    if (!couple) return
+    const tempId = `tmp-${Date.now()}-${Math.random()}`
+    addPending({ tempId, kind: 'gif', body: id, taskId: null, createdAt: new Date().toISOString() })
+    setGifsOpen(false)
+    atBottom.current = true
+    const gid = await insertMessage({ kind: 'gif', body: id })
+    settle(tempId, gid)
+  }
+
+  const toggleGifs = () => {
+    setGifsOpen((o) => !o)
+    inputRef.current?.blur()
+  }
+
   const submit = () => (photo ? sendPhoto() : sendText(text))
 
   const pickPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -200,7 +217,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
   }
 
   const canSend = Boolean(photo || text.trim())
-  const showForce = force.length > 0 && !text && !photo
+  const showForce = force.length > 0 && !text && !photo && !gifsOpen
   // Garde le clavier ouvert quand on touche un bouton du champ
   const keep = { onMouseDown: (e: { preventDefault: () => void }) => e.preventDefault() }
 
@@ -238,14 +255,20 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
               {sep && <p className="chat-day">{sep}</p>}
               {isWord(m) ? (
                 <div className={`msg-row ${side}${first ? ' first' : ''}${Date.parse(m.createdAt) > openedAt.current ? ' fresh' : ''}`}>
-                  <div className={`msg ${side}${first ? ' first' : ''}${lastOfGroup ? ' last' : ''}${m.kind === 'image' ? ' has-photo' : ''}${m.sending ? ' sending' : ''}`}>
+                  <div className={`msg ${side}${first ? ' first' : ''}${lastOfGroup ? ' last' : ''}${m.kind === 'image' ? ' has-photo' : ''}${m.kind === 'gif' && isKnownGif(m.body) ? ' has-gif' : ''}${m.sending ? ' sending' : ''}`}>
                     {ref && <div className="ref">Sur {m.mine ? `l’objectif de ${partnerName}` : 'ton objectif'} : {ref}</div>}
                     {m.kind === 'image' && (
                       <button type="button" className="msg-photo" style={{ aspectRatio: String(m.ratio || 1), width: `min(240px, 62vw, ${Math.round(320 * (m.ratio || 1))}px)` }} onClick={() => src && setViewing(src)} aria-label="Voir la photo en grand">
                         {src && <img src={src} alt="" loading="lazy" decoding="async" />}
                       </button>
                     )}
-                    {m.body && <div className="msg-text">{m.body}</div>}
+                    {m.kind === 'gif' && isKnownGif(m.body) ? (
+                      <img className="msg-gif" src={gifSrc(m.body as string)} alt={gifLabel(m.body)} width={384} height={336} loading="lazy" decoding="async" />
+                    ) : m.kind === 'gif' ? (
+                      <div className="msg-text">GIF</div>
+                    ) : (
+                      m.body && <div className="msg-text">{m.body}</div>
+                    )}
                   </div>
                   {lastOfGroup && <div className="msg-time">{m.sending ? 'Envoi…' : timeLabel(m.createdAt)}</div>}
                 </div>
@@ -285,6 +308,22 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
             ))}
           </div>
         )}
+        {gifsOpen && (
+          <div className="gif-picker" role="dialog" aria-label="Choisir un GIF">
+            {GIF_SERIES.map((serie) => (
+              <section key={serie.id} className="gif-serie">
+                <h2 className="gif-serie-title">{serie.title}</h2>
+                <div className="gif-grid">
+                  {serie.gifs.map((g) => (
+                    <button key={g.id} type="button" className="gif-pick" aria-label={`Envoyer le GIF : ${g.label}`} onClick={() => sendGif(g.id)}>
+                      <img src={gifSrc(g.id)} alt="" width={384} height={336} loading="lazy" decoding="async" />
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
         <div className="composer-box">
           {photo && (
             <div className="composer-photo">
@@ -310,6 +349,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
           />
           <div className="composer-tools">
             <button type="button" className="tool" aria-label="Envoyer une photo" onClick={() => fileRef.current?.click()}><Icon name="photo" size={20} /></button>
+            <button type="button" className={`tool gif-tool${gifsOpen ? ' on' : ''}`} aria-label={gifsOpen ? 'Fermer les GIFs' : 'Envoyer un GIF'} aria-expanded={gifsOpen} disabled={!couple} onClick={toggleGifs}>GIF</button>
             <button type="button" className="tool" aria-label="Envoyer une bulle" disabled={!partner} {...keep} onClick={bubble}><BubbleIcon size={19} /></button>
             <button type="button" className="tool" aria-label={`Envoyer une friandise, ${treatsLeft} restante${treatsLeft > 1 ? 's' : ''} aujourd’hui`} disabled={!partner || treatsLeft === 0} {...keep} onClick={treat}>
               <TreatIcon size={19} /><span className="tool-count">{treatsLeft}</span>

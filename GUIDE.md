@@ -42,7 +42,7 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 | **Aujourd'hui** | Le poisson et son humeur, le bilan de la semaine passée et les surprises, le récap du mois (les 5 premiers jours), les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher (avec des bulles), reporter, mes séries, compteur de ratés |
 | **Ma semaine** | Vue jour par jour, vue mois, préparation de la semaine, ajout sur un jour précis, semaine de Julie |
 | **Ensemble** | Défi de la semaine tiré au dé, objectifs communs (XP pour les deux), envies avec notes et lien, roue des surprises |
-| **Petits mots** | Chat en direct, photos (avec légende, en grand d'un tap), bulles, friandises (+1 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif. La barre d'onglets se cache quand le clavier est ouvert |
+| **Petits mots** | Chat en direct, photos (avec légende, en grand d'un tap), GIFs de poissons pixel (bouton GIF), bulles, friandises (+1 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif. La barre d'onglets se cache quand le clavier est ouvert |
 | **Aquarium** | La scène de l'habitat en grand (bocaux, puis aquarium, récif, lagon), « Ensemble » ou gros plan sur un poisson, sa fiche avec la silhouette du prochain stade, les visiteurs qui passent, le carnet des visiteurs, le prochain habitat, le récap du mois |
 | **Boutique** | « Notre habitat » en tête (conditions, cagnotte, achat ensemble), couleurs, bocaux, habits et accessoires, familiers, décorations par habitat |
 | **Paramètres** | Surnom et couleur du poisson, surnoms, messages de force, notifications, widget de l'écran d'accueil, changement de mot de passe, déconnexion |
@@ -58,7 +58,9 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 
 **Photos (migration 009)** : rangées dans l'espace de stockage privé `chat-images` de Supabase (rubrique **Storage**), un dossier par duo que seuls ses deux membres peuvent lire. Chaque photo est réduite à 1 600 px avant l'envoi (environ 300 Ko), soit quelques milliers de photos dans le 1 Go de l'offre gratuite.
 
-**Notifications (lot 2)** : petit mot ou photo reçus, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h, nouveau visiteur dans le carnet (chaque notification se coupe dans Paramètres).
+**GIFs (migration 010)** : 22 GIFs pixel art rangés dans `public/gifs/` (16 memes et 6 « téléphone rose »), choisis depuis le bouton **GIF** de Petits mots. Le message garde seulement le nom du GIF, que la base vérifie. Les fichiers sont servis par Vercel et gardés sur le téléphone pour le mode hors ligne. Pour en ajouter un : déposer le fichier dans `public/gifs/` et l'inscrire dans `src/lib/gifs.ts`, sans migration.
+
+**Notifications (lot 2)** : petit mot, photo ou GIF reçus, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h, nouveau visiteur dans le carnet (chaque notification se coupe dans Paramètres).
 
 ## 4. Les règles (écrites dans la base)
 
@@ -97,7 +99,7 @@ Personne ne peut modifier l'XP, une coche ou les données de l'autre en contourn
 | L'apparence, un écran | Le code, poussé sur `main` : Vercel redéploie en 1 à 2 minutes |
 | Une règle de la base | Un fichier de migration (voir ci-dessous) |
 
-**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql`, `006_progression.sql`, `007_visitors.sql`, `008_deco.sql` et `009_chat_photos.sql` sont déjà appliquées sur le projet `happy-fish`.
+**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql`, `006_progression.sql`, `007_visitors.sql`, `008_deco.sql`, `009_chat_photos.sql` et `010_gifs.sql` sont déjà appliquées sur le projet `happy-fish`.
 
 ### Le widget, côté coulisses
 - Le widget passe par l'app gratuite **Scriptable**. Dans Paramètres, **Installer le widget** donne les étapes et copie un script qui contient une clé personnelle.
@@ -139,7 +141,8 @@ npm run build                # vérification complète
 | `src/lib/widgetScript.ts` | Script Scriptable généré avec la clé de chacun |
 | `src/lib/visitors.ts` | Catalogue des 23 visiteurs (le même que dans la base, vérifié par `tests/visitors.test.ts`) ; dessins dans `src/components/Visitors.tsx`, écran du carnet dans `src/components/Carnet.tsx` |
 | `src/lib/deco.ts` | Décorations : emplacements, saisons, groupes ; dessins dans `src/components/Deco.tsx`, éditeur `DecoEditor.tsx`, rayon `DecoShop.tsx`, cadeaux `Gifts.tsx` |
-| `tests/` | 76 tests (`deco.test.ts` décorations, cadeaux, collections, `db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
+| `src/lib/gifs.ts`, `public/gifs/` | Catalogue des GIFs des petits mots et leurs fichiers (vérifiés par `tests/gifs.test.ts`) |
+| `tests/` | 83 tests (`gifs.test.ts` GIFs, `deco.test.ts` décorations, cadeaux, collections, `db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
 
 ## 7. Dépannage
 
