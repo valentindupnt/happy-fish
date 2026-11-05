@@ -10,7 +10,7 @@ import { Fish } from '../components/Fish'
 import { TaskRow } from '../components/TaskRow'
 import { Bar, Coin, Flame, Icon } from '../components/ui'
 import { WeekReview } from '../components/WeekReview'
-import { SurpriseWheel, readWheelSpun, useWheelUnlock } from '../components/SurpriseWheel'
+import { SurpriseWheel, useWheelUnlock } from '../components/SurpriseWheel'
 import { MonthRecapSheet, monthName, previousMonth } from '../components/MonthRecap'
 
 export function Today({ openTask, openAdd, goWeek, goSettings }: {
@@ -26,7 +26,7 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
   const [surprise, setSurprise] = useState(false)
   const unlock = useWheelUnlock()
   if (!me) return null
-  const wheelReady = Boolean(unlock) && !readWheelSpun(unlock?.id)
+  const wheelReady = Boolean(unlock) && !unlock?.surprise_picked_at
 
   const fish = fishOf(userId)
   const progress = levelProgress(fish.xp, fish.level)

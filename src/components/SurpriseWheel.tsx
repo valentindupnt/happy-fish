@@ -19,17 +19,6 @@ function shuffle<T>(list: T[]): T[] {
   return a
 }
 
-const spunKey = (reviewId: string) => `hf-wheel-${reviewId}`
-
-export function readWheelSpun(reviewId: string | undefined): string | null {
-  return readSpun(reviewId)
-}
-
-function readSpun(reviewId: string | undefined): string | null {
-  if (!reviewId) return null
-  try { return window.localStorage.getItem(spunKey(reviewId)) } catch { return null }
-}
-
 /**
  * Le bilan en attente qui débloque la roue : 3 ratés ou plus la semaine passée chez l'autre,
  * surprise pas encore reçue. Celui qui n'a pas raté lance la roue, une seule fois par bilan.
@@ -42,42 +31,52 @@ export function useWheelUnlock(): Review | null {
   )
 }
 
-/** Roue des envies et des idées de surprise. Le tirage reste dans ce téléphone. */
+/** Roue des surprises : le tirage se fait dans la base, au hasard parmi les idées de surprise du duo */
 export function SurpriseWheel({ onClose }: { onClose: () => void }) {
-  const { surpriseIdeas, wishes, couple, userId, run, reload, nameOf, partnerName } = useStore()
+  const { surpriseIdeas, couple, userId, run, reload, nameOf, partnerName } = useStore()
   const unlock = useWheelUnlock()
-  const pool = useMemo<Slice[]>(
-    () => [...wishes.map((w) => ({ id: `w-${w.id}`, title: w.title })), ...surpriseIdeas.map((s) => ({ id: `s-${s.id}`, title: s.title }))],
-    [wishes, surpriseIdeas],
-  )
+  const pool = useMemo<Slice[]>(() => surpriseIdeas.map((s) => ({ id: s.id, title: s.title })), [surpriseIdeas])
   const [slices, setSlices] = useState(() => shuffle(pool).slice(0, 8))
   const [angle, setAngle] = useState(0)
   const [spinning, setSpinning] = useState(false)
-  const [picked, setPicked] = useState<string | null>(() => readSpun(unlock?.id))
+  const [revealed, setRevealed] = useState<string | null>(null)
   const [title, setTitle] = useState('')
-  const [managing, setManaging] = useState(false)
 
   const n = slices.length
   const step = 360 / Math.max(1, n)
-  const alreadySpun = Boolean(unlock && readSpun(unlock.id))
-  const canSpin = Boolean(unlock) && !alreadySpun && !spinning && n >= 2
+  const alreadySpun = Boolean(unlock?.surprise_picked_at)
+  const picked = revealed ?? (alreadySpun ? unlock?.surprise_pick ?? null : null)
+  const canSpin = Boolean(unlock) && !alreadySpun && !spinning && pool.length >= 2
 
-  const spin = () => {
+  const spin = async () => {
     if (!canSpin || !unlock) return
-    setPicked(null)
-    const index = Math.floor(Math.random() * n)
+    setRevealed(null)
+    let chosen = ''
+    const ok = await run(async () => {
+      const res = await supabase.rpc('spin_wheel', { p_review: unlock.id })
+      if (!res.error) chosen = String(res.data)
+      return res
+    })
+    if (!ok || !chosen) return
+    // Le tirage vient de la base : on s'assure que la part gagnante est sur la roue
+    let list = slices
+    let index = list.findIndex((s) => s.title === chosen)
+    if (index < 0) {
+      const winner = pool.find((s) => s.title === chosen) ?? { id: `x-${chosen}`, title: chosen }
+      index = Math.floor(Math.random() * Math.max(1, list.length))
+      list = list.map((s, i) => (i === index ? winner : s))
+      setSlices(list)
+    }
+    const stepNow = 360 / Math.max(1, list.length)
     // La flèche est en haut : on amène le milieu de la part choisie sous la flèche
-    const target = 360 - (index * step + step / 2)
-    const next = angle - (angle % 360) + 360 * 5 + target
-    const chosen = slices[index].title
-    setAngle(next)
+    const target = 360 - (index * stepNow + stepNow / 2)
+    setAngle(angle - (angle % 360) + 360 * 5 + target)
     setSpinning(true)
-    // Le résultat est gardé sur cet appareil pour ne pas pouvoir relancer la roue
-    try { window.localStorage.setItem(spunKey(unlock.id), chosen) } catch { /* rien */ }
     window.setTimeout(() => {
       setSpinning(false)
-      setPicked(chosen)
+      setRevealed(chosen)
       celebrate()
+      void reload(['reviews'])
     }, 3600)
   }
 
@@ -94,7 +93,7 @@ export function SurpriseWheel({ onClose }: { onClose: () => void }) {
     if (await run(() => supabase.from('surprise_ideas').delete().eq('id', id))) await reload(['surprises'])
   }
 
-  // Les parts suivent la liste quand une envie ou une idée est ajoutée ou retirée
+  // Les parts suivent la liste quand une idée est ajoutée ou retirée
   useEffect(() => {
     if (spinning) return
     const ids = new Set(pool.map((x) => x.id))
@@ -129,66 +128,45 @@ export function SurpriseWheel({ onClose }: { onClose: () => void }) {
             <div className="wheel-hub" aria-hidden="true" />
           </div>
           <div aria-live="polite" style={{ textAlign: 'center', minHeight: 44 }}>
-            {picked && (
+            {picked && !spinning && (
               <>
                 <span className="small">La roue a choisi :</span>
                 <div style={{ fontSize: 18, fontWeight: 800 }}>{picked}</div>
               </>
             )}
           </div>
-          <button type="button" className="btn primary block" aria-disabled={!canSpin} style={canSpin ? undefined : { opacity: 0.5 }} onClick={spin}>
+          <button type="button" className="btn primary block" aria-disabled={!canSpin} style={canSpin ? undefined : { opacity: 0.5 }} onClick={() => void spin()}>
             {spinning ? 'Ça tourne…' : unlock && !alreadySpun ? 'Lancer la roue' : (<><Icon name="lock" size={16} />&nbsp;Roue verrouillée</>)}
           </button>
-          {pool.length > 8 && <span className="small" style={{ textAlign: 'center' }}>La roue montre 8 envies tirées au hasard parmi les {pool.length}.</span>}
+          {pool.length > 8 && <span className="small" style={{ textAlign: 'center' }}>La roue montre 8 surprises tirées au hasard parmi les {pool.length}.</span>}
         </>
       ) : (
-        <div className="card empty">Il faut au moins 2 envies ou idées pour faire tourner la roue.</div>
+        <div className="card empty">Il faut au moins 2 surprises dans la liste pour faire tourner la roue.</div>
       )}
       <span className="small" style={{ textAlign: 'center' }}>{status}</span>
 
-      <div className="row-between" style={{ marginTop: 6 }}>
-        <h3 className="h2" style={{ fontSize: 15 }}>Nos envies{wishes.length ? ` (${wishes.length})` : ''}</h3>
-        <span className="small">à modifier dans Ensemble</span>
+      <h3 className="h2" style={{ fontSize: 15, marginTop: 6 }}>Nos surprises{surpriseIdeas.length ? ` (${surpriseIdeas.length})` : ''}</h3>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input className="input" aria-label="Nouvelle surprise" placeholder="Petit-déjeuner au lit" maxLength={120} value={title}
+          onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void add() }} />
+        <button type="button" className="btn primary" disabled={!title.trim()} onClick={add}>Ajouter</button>
       </div>
-      {wishes.length > 0 ? (
+      {surpriseIdeas.length > 0 ? (
         <ul className="list card">
-          {wishes.map((w) => (
-            <li key={w.id} className="row-between" style={{ alignItems: 'center', padding: '8px 12px', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, minWidth: 0 }}>{w.title}</span>
-              <span className="small" style={{ flexShrink: 0 }}>par {nameOf(w.created_by)}</span>
+          {surpriseIdeas.map((s) => (
+            <li key={s.id} className="row-between" style={{ alignItems: 'center', padding: '8px 12px', gap: 8 }}>
+              <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{s.title}</span>
+                <span className="small">par {nameOf(s.created_by)}</span>
+              </span>
+              {s.created_by === userId && (
+                <button type="button" className="icon-btn" aria-label={`Retirer ${s.title}`} onClick={() => remove(s.id)}><Icon name="close" /></button>
+              )}
             </li>
           ))}
         </ul>
       ) : (
-        <div className="card empty">Pas encore d’envie. Ajoutez-en dans Ensemble.</div>
-      )}
-
-      <button type="button" className="btn small ghost" onClick={() => setManaging((m) => !m)}>
-        {managing ? 'Masquer les idées de surprise' : `Idées de surprise (${surpriseIdeas.length})`}
-      </button>
-      {managing && (
-        <div className="stack" style={{ gap: 10 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input className="input" aria-label="Nouvelle idée de surprise" placeholder="Petit-déjeuner au lit" maxLength={120} value={title}
-              onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void add() }} />
-            <button type="button" className="btn primary" disabled={!title.trim()} onClick={add}>Ajouter</button>
-          </div>
-          {surpriseIdeas.length > 0 && (
-            <ul className="list card">
-              {surpriseIdeas.map((s) => (
-                <li key={s.id} className="row-between" style={{ alignItems: 'center', padding: '8px 12px', gap: 8 }}>
-                  <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{s.title}</span>
-                    <span className="small">par {nameOf(s.created_by)}</span>
-                  </span>
-                  {s.created_by === userId && (
-                    <button type="button" className="icon-btn" aria-label={`Retirer ${s.title}`} onClick={() => remove(s.id)}><Icon name="close" /></button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <div className="card empty">Ajoutez ici les surprises que vous aimeriez recevoir.</div>
       )}
     </Sheet>
   )

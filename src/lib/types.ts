@@ -140,6 +140,8 @@ export interface Review {
   xp: number
   surprise_due: boolean
   surprise_received_at: string | null
+  surprise_pick: string | null
+  surprise_picked_at: string | null
 }
 
 export interface Streak { goal_id: string; current_streak: number; best_streak: number }

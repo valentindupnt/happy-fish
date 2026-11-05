@@ -55,7 +55,7 @@ export function WeekReview() {
         <section key={r.id} aria-label="Surprise à offrir" className="card pad cream stack" style={{ gap: 4 }}>
           <span className="h2" style={{ fontSize: 15 }}>Tu dois une surprise à {partnerName}</span>
           <span className="small" style={{ color: 'var(--cream-ink)' }}>
-            {r.missed} ratés {weekLabel(r.week_start).toLowerCase()}. {partnerName} lance la roue pour choisir, et confirmera dans l’app une fois la surprise reçue.
+            {r.missed} ratés {weekLabel(r.week_start).toLowerCase()}. {r.surprise_pick ? `${partnerName} a lancé la roue : ${r.surprise_pick}.` : `${partnerName} lance la roue pour choisir.`} {partnerName} confirmera dans l’app une fois la surprise reçue.
           </span>
         </section>
       ))}
