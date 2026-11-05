@@ -10,6 +10,9 @@ export function useKeyboard() {
     const vv = window.visualViewport
     const touch = window.matchMedia?.('(pointer: coarse)').matches ?? false
     let raf = 0
+    // Après la fermeture du clavier, iOS tarde parfois à rendre sa hauteur à la zone visible,
+    // et l'évènement « resize » peut manquer : on laisse un court délai, puis on revérifie.
+    let settleUntil = 0
 
     const editing = () => {
       const el = document.activeElement as HTMLElement | null
@@ -23,9 +26,12 @@ export function useKeyboard() {
       raf = requestAnimationFrame(() => {
         const zoomed = vv ? vv.scale > 1.01 : false
         const kbHeight = vv && !zoomed ? window.innerHeight - vv.height : 0
-        const open = kbHeight > 120 || (touch && editing())
+        // Un clavier ouvert suppose un champ actif : sans champ actif (et hors délai de fermeture),
+        // la hauteur réduite est un reste périmé et on la remet à zéro.
+        const kbOpen = kbHeight > 120 && (editing() || Date.now() < settleUntil)
+        const open = kbOpen || (touch && editing())
         root.classList.toggle('kb', open)
-        if (vv && kbHeight > 120) {
+        if (vv && kbOpen) {
           root.style.setProperty('--app-h', `${Math.round(vv.height)}px`)
           if (window.scrollY || vv.offsetTop) window.scrollTo(0, 0)
         } else {
@@ -34,9 +40,18 @@ export function useKeyboard() {
       })
     }
     // Au changement de champ, focusout arrive avant focusin : on attend un instant pour éviter un clignotement
-    const onFocus = () => window.setTimeout(update, 30)
+    const onFocus = () => {
+      settleUntil = Date.now() + 600
+      for (const ms of [30, 250, 700, 1200]) window.setTimeout(update, ms)
+    }
+    // Retour dans l'app (iPhone verrouillé, autre app) ou rotation : on recalcule aussi
+    const onShow = () => update()
+    const onVisible = () => { if (!document.hidden) update() }
 
     update()
+    window.addEventListener('pageshow', onShow)
+    window.addEventListener('resize', onShow)
+    document.addEventListener('visibilitychange', onVisible)
     vv?.addEventListener('resize', update)
     vv?.addEventListener('scroll', update)
     document.addEventListener('focusin', onFocus)
@@ -47,6 +62,9 @@ export function useKeyboard() {
       vv?.removeEventListener('scroll', update)
       document.removeEventListener('focusin', onFocus)
       document.removeEventListener('focusout', onFocus)
+      window.removeEventListener('pageshow', onShow)
+      window.removeEventListener('resize', onShow)
+      document.removeEventListener('visibilitychange', onVisible)
       root.classList.remove('kb')
       root.style.removeProperty('--app-h')
     }

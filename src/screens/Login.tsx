@@ -44,7 +44,7 @@ export function Login() {
   return (
     <div className="screen no-tabs" style={{ justifyContent: 'center', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        <div style={{ width: 120, height: 90, background: 'var(--water)', border: '2px solid var(--ink)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 120, height: 90, background: 'var(--water)', border: '1px solid var(--ink)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Fish color="corail" width={80} />
         </div>
         <h1 className="title" style={{ fontSize: 20 }}>Happy Fish</h1>

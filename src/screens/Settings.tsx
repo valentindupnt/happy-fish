@@ -54,7 +54,7 @@ export function Settings({ onBack, openShop }: { onBack: () => void; openShop: (
 
       <section aria-label="Mon poisson" className="card pad stack" style={{ gap: 14 }}>
         <h2 className="h2">Mon poisson</h2>
-        <div style={{ height: 96, background: 'var(--water)', border: '2px solid var(--ink)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ height: 96, background: 'var(--water)', border: '1px solid var(--ink)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Fish color={color} hat={me.fish_hat} stade={stadeOf(fishOf(userId).level)} width={90} label={`Aperçu de ${fishName || 'ton poisson'}`} />
         </div>
         <div className="field">
@@ -74,7 +74,7 @@ export function Settings({ onBack, openShop }: { onBack: () => void; openShop: (
                 onClick={() => setColor(c)}
                 style={{
                   width: 44, height: 44, padding: 0, borderRadius: 10, background: PALETTES[c].b,
-                  border: color === c ? '3px solid var(--ink)' : '2px solid var(--ink)',
+                  border: color === c ? '3px solid var(--ink)' : '1px solid var(--ink)',
                   boxShadow: color === c ? '0 0 0 3px #fff, 0 0 0 5px var(--ink)' : undefined,
                 }}
               />
