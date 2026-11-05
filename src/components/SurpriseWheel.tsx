@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { celebrate } from '../lib/fx'
+import { weekLabel } from '../lib/dates'
+import type { Review } from '../lib/types'
 import { Icon, Sheet } from './ui'
 
 const COLORS = ['#FF8C1A', '#4D8EEA', '#FF6FAE', '#2ECC71', '#F2C66D', '#9B6BDF', '#5ED3B3', '#E0304E']
+
+type Slice = { id: string; title: string }
 
 function shuffle<T>(list: T[]): T[] {
   const a = [...list]
@@ -15,31 +19,64 @@ function shuffle<T>(list: T[]): T[] {
   return a
 }
 
-/** Roue des idées de surprises. Le tirage reste dans le téléphone : la surprise reste secrète. */
+const spunKey = (reviewId: string) => `hf-wheel-${reviewId}`
+
+export function readWheelSpun(reviewId: string | undefined): string | null {
+  return readSpun(reviewId)
+}
+
+function readSpun(reviewId: string | undefined): string | null {
+  if (!reviewId) return null
+  try { return window.localStorage.getItem(spunKey(reviewId)) } catch { return null }
+}
+
+/**
+ * Le bilan en attente qui débloque la roue : 3 ratés ou plus la semaine passée chez l'autre,
+ * surprise pas encore reçue. Celui qui n'a pas raté lance la roue, une seule fois par bilan.
+ */
+export function useWheelUnlock(): Review | null {
+  const { reviews, partner } = useStore()
+  return useMemo(
+    () => reviews.find((r) => r.profile_id === partner?.id && r.surprise_due && !r.surprise_received_at) ?? null,
+    [reviews, partner?.id],
+  )
+}
+
+/** Roue des envies et des idées de surprise. Le tirage reste dans ce téléphone. */
 export function SurpriseWheel({ onClose }: { onClose: () => void }) {
-  const { surpriseIdeas, couple, userId, run, reload, nameOf } = useStore()
-  const [slices, setSlices] = useState(() => shuffle(surpriseIdeas).slice(0, 8))
+  const { surpriseIdeas, wishes, couple, userId, run, reload, nameOf, partnerName } = useStore()
+  const unlock = useWheelUnlock()
+  const pool = useMemo<Slice[]>(
+    () => [...wishes.map((w) => ({ id: `w-${w.id}`, title: w.title })), ...surpriseIdeas.map((s) => ({ id: `s-${s.id}`, title: s.title }))],
+    [wishes, surpriseIdeas],
+  )
+  const [slices, setSlices] = useState(() => shuffle(pool).slice(0, 8))
   const [angle, setAngle] = useState(0)
   const [spinning, setSpinning] = useState(false)
-  const [picked, setPicked] = useState<string | null>(null)
+  const [picked, setPicked] = useState<string | null>(() => readSpun(unlock?.id))
   const [title, setTitle] = useState('')
-  const [managing, setManaging] = useState(surpriseIdeas.length < 2)
+  const [managing, setManaging] = useState(false)
 
   const n = slices.length
   const step = 360 / Math.max(1, n)
+  const alreadySpun = Boolean(unlock && readSpun(unlock.id))
+  const canSpin = Boolean(unlock) && !alreadySpun && !spinning && n >= 2
 
   const spin = () => {
-    if (spinning || n < 2) return
+    if (!canSpin || !unlock) return
     setPicked(null)
     const index = Math.floor(Math.random() * n)
     // La flèche est en haut : on amène le milieu de la part choisie sous la flèche
     const target = 360 - (index * step + step / 2)
     const next = angle - (angle % 360) + 360 * 5 + target
+    const chosen = slices[index].title
     setAngle(next)
     setSpinning(true)
+    // Le résultat est gardé sur cet appareil pour ne pas pouvoir relancer la roue
+    try { window.localStorage.setItem(spunKey(unlock.id), chosen) } catch { /* rien */ }
     window.setTimeout(() => {
       setSpinning(false)
-      setPicked(slices[index].title)
+      setPicked(chosen)
       celebrate()
     }, 3600)
   }
@@ -57,21 +94,30 @@ export function SurpriseWheel({ onClose }: { onClose: () => void }) {
     if (await run(() => supabase.from('surprise_ideas').delete().eq('id', id))) await reload(['surprises'])
   }
 
-  // Les parts suivent la liste quand on ajoute ou retire une idée
+  // Les parts suivent la liste quand une envie ou une idée est ajoutée ou retirée
   useEffect(() => {
     if (spinning) return
-    const ids = new Set(surpriseIdeas.map((x) => x.id))
-    const stale = slices.some((x) => !ids.has(x.id)) || slices.length < Math.min(8, surpriseIdeas.length)
-    if (stale) setSlices(shuffle(surpriseIdeas).slice(0, 8))
-  }, [surpriseIdeas, slices, spinning])
+    const ids = new Set(pool.map((x) => x.id))
+    const stale = slices.some((x) => !ids.has(x.id)) || slices.length < Math.min(8, pool.length)
+    if (stale) setSlices(shuffle(pool).slice(0, 8))
+  }, [pool, slices, spinning])
 
   const gradient = slices.map((_, i) => `${COLORS[i % COLORS.length]} ${i * step}deg ${(i + 1) * step}deg`).join(', ')
 
+  let status: string
+  if (unlock) {
+    status = alreadySpun
+      ? `La roue a déjà tourné pour ${weekLabel(unlock.week_start).toLowerCase()}. Elle repart au prochain bilan à 3 ratés.`
+      : `${partnerName} a eu ${unlock.missed} ratés ${weekLabel(unlock.week_start).toLowerCase()} : tu peux lancer la roue une fois.`
+  } else {
+    status = `La roue se débloque quand ${partnerName || 'l’autre'} atteint 3 ratés sur une semaine. C’est toi qui la lances.`
+  }
+
   return (
-    <Sheet title="Roue des surprises" onClose={onClose}>
+    <Sheet title="Surprise" onClose={onClose}>
       {n >= 2 ? (
         <>
-          <div className="wheel-wrap">
+          <div className="wheel-wrap" style={unlock && !alreadySpun ? undefined : { opacity: 0.55 }}>
             <div className="wheel-pointer" aria-hidden="true" />
             <div className="wheel" style={{ background: `conic-gradient(${gradient})`, transform: `rotate(${angle}deg)` }} aria-hidden="true">
               {slices.map((s, i) => (
@@ -90,16 +136,35 @@ export function SurpriseWheel({ onClose }: { onClose: () => void }) {
               </>
             )}
           </div>
-          <button type="button" className="btn primary block" disabled={spinning} onClick={spin}>{spinning ? 'Ça tourne…' : picked ? 'Retourner la roue' : 'Tourner la roue'}</button>
-          <span className="small" style={{ textAlign: 'center' }}>Le résultat n’est enregistré nulle part : il reste entre toi et ta roue.</span>
-          {surpriseIdeas.length > 8 && <span className="small" style={{ textAlign: 'center' }}>La roue montre 8 idées tirées au hasard parmi les {surpriseIdeas.length}.</span>}
+          <button type="button" className="btn primary block" aria-disabled={!canSpin} style={canSpin ? undefined : { opacity: 0.5 }} onClick={spin}>
+            {spinning ? 'Ça tourne…' : unlock && !alreadySpun ? 'Lancer la roue' : (<><Icon name="lock" size={16} />&nbsp;Roue verrouillée</>)}
+          </button>
+          {pool.length > 8 && <span className="small" style={{ textAlign: 'center' }}>La roue montre 8 envies tirées au hasard parmi les {pool.length}.</span>}
         </>
       ) : (
-        <div className="card empty">Il faut au moins 2 idées pour faire tourner la roue.</div>
+        <div className="card empty">Il faut au moins 2 envies ou idées pour faire tourner la roue.</div>
+      )}
+      <span className="small" style={{ textAlign: 'center' }}>{status}</span>
+
+      <div className="row-between" style={{ marginTop: 6 }}>
+        <h3 className="h2" style={{ fontSize: 15 }}>Nos envies{wishes.length ? ` (${wishes.length})` : ''}</h3>
+        <span className="small">à modifier dans Ensemble</span>
+      </div>
+      {wishes.length > 0 ? (
+        <ul className="list card">
+          {wishes.map((w) => (
+            <li key={w.id} className="row-between" style={{ alignItems: 'center', padding: '8px 12px', gap: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, minWidth: 0 }}>{w.title}</span>
+              <span className="small" style={{ flexShrink: 0 }}>par {nameOf(w.created_by)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="card empty">Pas encore d’envie. Ajoutez-en dans Ensemble.</div>
       )}
 
       <button type="button" className="btn small ghost" onClick={() => setManaging((m) => !m)}>
-        {managing ? 'Masquer les idées' : `Gérer les idées (${surpriseIdeas.length})`}
+        {managing ? 'Masquer les idées de surprise' : `Idées de surprise (${surpriseIdeas.length})`}
       </button>
       {managing && (
         <div className="stack" style={{ gap: 10 }}>

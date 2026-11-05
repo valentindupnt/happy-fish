@@ -10,6 +10,7 @@ import { Fish } from '../components/Fish'
 import { TaskRow } from '../components/TaskRow'
 import { Bar, Coin, Flame, Icon } from '../components/ui'
 import { WeekReview } from '../components/WeekReview'
+import { SurpriseWheel, readWheelSpun, useWheelUnlock } from '../components/SurpriseWheel'
 import { MonthRecapSheet, monthName, previousMonth } from '../components/MonthRecap'
 
 export function Today({ openTask, openAdd, goWeek, goSettings }: {
@@ -22,7 +23,10 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
   const [day, setDay] = useState(today)
   const [who, setWho] = useState<'me' | 'partner'>('me')
   const [recap, setRecap] = useState(false)
+  const [surprise, setSurprise] = useState(false)
+  const unlock = useWheelUnlock()
   if (!me) return null
+  const wheelReady = Boolean(unlock) && !readWheelSpun(unlock?.id)
 
   const fish = fishOf(userId)
   const progress = levelProgress(fish.xp, fish.level)
@@ -153,7 +157,7 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
       {who === 'me' && (
         <div className="card cream" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}>
           <span style={{ fontFamily: 'var(--pixel)', fontSize: 14, color: 'var(--cream-strong)' }}>{Math.min(missed, 3)}/3</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: 14, fontWeight: 800 }}>{missed > 1 ? 'Ratés en jeu cette semaine' : 'Raté en jeu cette semaine'}</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--cream-ink)' }}>
               {missed >= 3
@@ -161,8 +165,13 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
                 : `À 3 ratés dimanche, tu offres une surprise à ${partnerName}. Un raté reporté puis fait ne compte pas.`}
             </span>
           </div>
+          <button type="button" className={`wheel-bubble${wheelReady ? ' ready' : ''}`} aria-label={wheelReady ? 'Surprise : la roue est prête' : 'Surprise : la roue est verrouillée'} onClick={() => setSurprise(true)}>
+            <span className="mini-wheel" aria-hidden="true" />
+            <span>Surprise</span>
+          </button>
         </div>
       )}
+      {surprise && <SurpriseWheel onClose={() => setSurprise(false)} />}
 
       <button type="button" className="btn block" style={{ width: 'calc(100% - 72px)' }} onClick={goWeek}>
         <Icon name="calendar" size={18} />Voir et préparer ma semaine

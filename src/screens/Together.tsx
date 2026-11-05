@@ -8,7 +8,6 @@ import { TaskRow } from '../components/TaskRow'
 import { Icon, Sheet } from '../components/ui'
 import type { AddGoalInit } from '../components/AddGoal'
 import { Challenges } from '../components/Challenges'
-import { SurpriseWheel } from '../components/SurpriseWheel'
 
 function safeLink(link: string | null): string | null {
   if (!link) return null
@@ -19,9 +18,9 @@ function safeLink(link: string | null): string | null {
 }
 
 export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; openAdd: (init: AddGoalInit) => void }) {
-  const { tasks, today, wishes, nameOf, run, reload, userId, surpriseIdeas } = useStore()
+  const { tasks, today, wishes, nameOf, run, reload, userId } = useStore()
   const [editing, setEditing] = useState<Wish | 'new' | null>(null)
-  const [wheel, setWheel] = useState(false)
+  const [wishesOpen, setWishesOpen] = useState(false)
   const common = tasksOfWeek(tasks, weekStart(today), null).sort((a, b) => a.date.localeCompare(b.date))
 
   return (
@@ -46,13 +45,17 @@ export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; o
         <Icon name="plus" size={18} />Ajouter un objectif commun
       </button>
 
-      <div className="row-between" style={{ marginTop: 6 }}>
-        <h2 className="h2">Nos envies{wishes.length ? ` (${wishes.length})` : ''}</h2>
+      <div className="row-between" style={{ marginTop: 6, alignItems: 'center', gap: 8 }}>
+        <button type="button" className="btn ghost" style={{ flex: 1, justifyContent: 'flex-start', padding: 0 }} aria-expanded={wishesOpen} aria-controls="wishes-list" onClick={() => setWishesOpen((o) => !o)}>
+          <h2 className="h2" style={{ margin: 0 }}>Nos envies{wishes.length ? ` (${wishes.length})` : ''}</h2>
+          <Icon name={wishesOpen ? 'up' : 'down'} size={18} />
+        </button>
         <button type="button" className="btn small primary" onClick={() => setEditing('new')}>
           <Icon name="plus" size={16} stroke={3} />Ajouter
         </button>
       </div>
 
+      {wishesOpen && <div id="wishes-list" className="stack">
       {!wishes.length && (
         <div className="card empty">Notez ici vos idées de sorties, voyages ou cadeaux, avec un lien si besoin.</div>
       )}
@@ -90,17 +93,7 @@ export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; o
           <Icon name="plus" size={18} />Ajouter une envie
         </button>
       )}
-
-      <section aria-label="Roue des surprises" className="card pad cream" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span className="h2" style={{ fontSize: 15 }}>Roue des surprises</span>
-          <span className="small" style={{ color: 'var(--cream-ink)' }}>
-            {surpriseIdeas.length} idée{surpriseIdeas.length > 1 ? 's' : ''} en réserve, pour quand l’un de vous doit une surprise.
-          </span>
-        </div>
-        <button type="button" className="btn small primary" onClick={() => setWheel(true)}>Ouvrir</button>
-      </section>
-      {wheel && <SurpriseWheel onClose={() => setWheel(false)} />}
+      </div>}
 
       {editing && (
         <WishSheet

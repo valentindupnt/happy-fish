@@ -431,6 +431,10 @@ button.bowl { background: none; border: none; }
 .wheel-label > span { position: absolute; left: 50%; top: 7%; transform: translateX(-50%); writing-mode: vertical-rl; max-height: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 800; color: #1B1B3A; }
 .wheel-pointer { position: absolute; left: 50%; top: -10px; margin-left: -11px; width: 0; height: 0; border-left: 11px solid transparent; border-right: 11px solid transparent; border-top: 20px solid var(--ink); z-index: 2; }
 .wheel-hub { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; background: var(--ink); border: 3px solid #FFFFFF; border-radius: 50%; }
+.wheel-bubble { display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; min-width: 64px; padding: 6px 8px; background: #FFFFFF; border: 1px solid var(--ink); border-radius: 14px; font-size: 11px; font-weight: 800; color: var(--ink); cursor: pointer; }
+.wheel-bubble.ready { background: #FFE3EF; }
+.mini-wheel { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ink); background: conic-gradient(#FF8C1A 0 90deg, #4D8EEA 90deg 180deg, #FF6FAE 180deg 270deg, #2ECC71 270deg 360deg); opacity: 0.55; }
+.wheel-bubble.ready .mini-wheel { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   .dice-fish.throwing, .dice-die.tossed, .die.rolling { animation: none; }
   .wheel { transition-duration: 0.4s; }

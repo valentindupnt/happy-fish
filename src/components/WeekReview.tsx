@@ -55,9 +55,8 @@ export function WeekReview() {
         <section key={r.id} aria-label="Surprise à offrir" className="card pad cream stack" style={{ gap: 4 }}>
           <span className="h2" style={{ fontSize: 15 }}>Tu dois une surprise à {partnerName}</span>
           <span className="small" style={{ color: 'var(--cream-ink)' }}>
-            {r.missed} ratés {weekLabel(r.week_start).toLowerCase()}. {partnerName} confirmera dans l’app une fois la surprise reçue.
+            {r.missed} ratés {weekLabel(r.week_start).toLowerCase()}. {partnerName} lance la roue pour choisir, et confirmera dans l’app une fois la surprise reçue.
           </span>
-          <div><button type="button" className="btn small primary" onClick={() => setWheel(true)}>Tourner la roue des surprises</button></div>
         </section>
       ))}
       {wheel && <SurpriseWheel onClose={() => setWheel(false)} />}
@@ -66,7 +65,10 @@ export function WeekReview() {
         <section key={r.id} aria-label="Surprise à recevoir" className="card pad stack" style={{ gap: 8, background: '#FFE3EF' }}>
           <span className="h2" style={{ fontSize: 15 }}>{partnerName} te doit une surprise !</span>
           <span className="small" style={{ color: '#8C1D55' }}>{r.missed} ratés {weekLabel(r.week_start).toLowerCase()}.</span>
-          <div><button type="button" className="btn small primary" onClick={() => received(r)}>Surprise reçue</button></div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="btn small primary" onClick={() => setWheel(true)}>Lancer la roue</button>
+            <button type="button" className="btn small" onClick={() => received(r)}>Surprise reçue</button>
+          </div>
         </section>
       ))}
     </>
