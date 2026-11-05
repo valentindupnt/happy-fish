@@ -39,9 +39,9 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 
 | Écran | Contenu |
 |---|---|
-| **Aujourd'hui** | Le poisson et son humeur, le bilan de la semaine passée et les surprises, le récap du mois (les 5 premiers jours), les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher (avec des bulles), reporter, mes séries, compteur de ratés |
+| **Aujourd'hui** | Le poisson et son humeur, le bilan de la semaine passée et les surprises, le récap du mois (les 5 premiers jours), les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher (avec des bulles), reporter, quêtes annexes du jour, mes séries, compteur de ratés avec la bulle « Surprise » (roue) |
 | **Ma semaine** | Vue jour par jour, vue mois, préparation de la semaine, ajout sur un jour précis, semaine de Julie |
-| **Ensemble** | Défi de la semaine tiré au dé, objectifs communs (XP pour les deux), envies avec notes et lien, roue des surprises |
+| **Ensemble** | Défi de la semaine tiré au dé, Wall of fame (dernier snap de chacun, bouton « Toute la fame »), objectifs communs (XP pour les deux), envies avec notes et lien (liste déroulante) |
 | **Petits mots** | Chat en direct, photos (avec légende, en grand d'un tap), GIFs de poissons pixel (bouton GIF), bulles, friandises (+1 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif. La barre d'onglets se cache quand le clavier est ouvert |
 | **Aquarium** | La scène de l'habitat en grand (bocaux, puis aquarium, récif, lagon), « Ensemble » ou gros plan sur un poisson, sa fiche avec la silhouette du prochain stade, les visiteurs qui passent, le carnet des visiteurs, le prochain habitat, le récap du mois |
 | **Boutique** | « Notre habitat » en tête (conditions, cagnotte, achat ensemble), couleurs, bocaux, habits et accessoires, familiers, décorations par habitat |
@@ -80,6 +80,7 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 | Surprise | Calculée le lundi matin : 3 ratés ou plus la semaine passée, et on doit une surprise à l'autre. Seul celui qui la reçoit peut la marquer comme reçue |
 | Pièces | 1 pièce pour 5 XP gagnés, plus celles des visiteurs perso, moins les achats et les versements à la cagnotte. L'XP en réserve rapporte aussi des pièces, donc la cagnotte ne peut pas se bloquer |
 | Séries | Sous-objectifs d'un objectif récurrent faits d'affilée. Reporté puis fait : la série continue. Raté (jour passé, pas fait) : retour à zéro. Retiré, ou aujourd'hui pas encore fait : sans effet |
+| Quêtes annexes | Facultatif. Chaque jour, 3 quêtes tirées au hasard dans sa propre liste (37 de départ : 18 simples, 19 dures, copiées au premier tirage, modifiables avec « Gérer mes quêtes »). Une quête se valide avec un snap (photo) : 3 pièces si elle est simple, 5 si elle est dure, pour celui qui la valide. Une quête faite peut être gardée pour demain (2 au maximum) : elle revient à la même place et sa série monte ; si elle n’est pas refaite, la série retombe à zéro, sans pénalité. Les snaps vont dans le Wall of fame (espace `chat-images`). Pas de bonus ni de relance. Une quête retirée est archivée, les anciens snaps gardent son nom (migration 012) |
 | Défi de la semaine | Un seul lancer de dé par semaine, parmi les défis de la liste commune. Défi réussi : 10 pièces dans la cagnotte |
 | Roue des surprises | Tire une idée au hasard dans la liste commune. Le résultat n'est enregistré nulle part |
 | Hors ligne | L'app s'ouvre avec les dernières données. Les coches attendent le retour du réseau puis partent toutes seules ; les autres actions demandent le réseau |
@@ -99,7 +100,7 @@ Personne ne peut modifier l'XP, une coche ou les données de l'autre en contourn
 | L'apparence, un écran | Le code, poussé sur `main` : Vercel redéploie en 1 à 2 minutes |
 | Une règle de la base | Un fichier de migration (voir ci-dessous) |
 
-**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql`, `006_progression.sql`, `007_visitors.sql`, `008_deco.sql`, `009_chat_photos.sql` et `010_gifs.sql` sont déjà appliquées sur le projet `happy-fish`.
+**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql`, `006_progression.sql`, `007_visitors.sql`, `008_deco.sql`, `009_chat_photos.sql`, `010_gifs.sql`, `011_wheel.sql` et `012_quests.sql` sont déjà appliquées sur le projet `happy-fish`.
 
 ### Le widget, côté coulisses
 - Le widget passe par l'app gratuite **Scriptable**. Dans Paramètres, **Installer le widget** donne les étapes et copie un script qui contient une clé personnelle.
@@ -142,7 +143,8 @@ npm run build                # vérification complète
 | `src/lib/visitors.ts` | Catalogue des 23 visiteurs (le même que dans la base, vérifié par `tests/visitors.test.ts`) ; dessins dans `src/components/Visitors.tsx`, écran du carnet dans `src/components/Carnet.tsx` |
 | `src/lib/deco.ts` | Décorations : emplacements, saisons, groupes ; dessins dans `src/components/Deco.tsx`, éditeur `DecoEditor.tsx`, rayon `DecoShop.tsx`, cadeaux `Gifts.tsx` |
 | `src/lib/gifs.ts`, `public/gifs/` | Catalogue des GIFs des petits mots et leurs fichiers (vérifiés par `tests/gifs.test.ts`) |
-| `tests/` | 83 tests (`gifs.test.ts` GIFs, `deco.test.ts` décorations, cadeaux, collections, `db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
+| `src/components/Quests.tsx` | Quêtes annexes du jour, gestion de sa liste, Wall of fame |
+| `tests/` | 95 tests (`wheel.test.ts` roue, `quests.test.ts` quêtes, `gifs.test.ts` GIFs, `deco.test.ts` décorations, cadeaux, collections, `db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
 
 ## 7. Dépannage
 

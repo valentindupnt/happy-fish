@@ -177,7 +177,7 @@ describe('Happy Fish, décorations, cadeaux et collections', () => {
 
 describe('Happy Fish, migration 008 sur une base déjà utilisée', () => {
   it('garde les achats et les pièces, ne se joue qu’une fois, et donne un cadeau à qui l’a mérité', async () => {
-    const { db, as: as2, admin: admin2 } = await createDb(SQL_FILES.filter((f) => !f.includes('008')))
+    const { db, as: as2, admin: admin2 } = await createDb(SQL_FILES.filter((f) => !f.includes('008') && !f.includes('012')))
     await admin2(`insert into auth.users (id, email) values ('${VAL}', 'v@t.fr'), ('${JULIE}', 'j@t.fr')`)
     const [{ code }] = await as2<{ code: string }>(VAL, `select public.create_couple('Valentin') as code`)
     await as2(JULIE, `select public.join_couple($1, 'Julie')`, [code])

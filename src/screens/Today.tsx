@@ -10,6 +10,7 @@ import { Fish } from '../components/Fish'
 import { TaskRow } from '../components/TaskRow'
 import { Bar, Coin, Flame, Icon } from '../components/ui'
 import { WeekReview } from '../components/WeekReview'
+import { QuestsCard } from '../components/Quests'
 import { SurpriseWheel, useWheelUnlock } from '../components/SurpriseWheel'
 import { MonthRecapSheet, monthName, previousMonth } from '../components/MonthRecap'
 
@@ -134,6 +135,8 @@ export function Today({ openTask, openAdd, goWeek, goSettings }: {
           )}
         </div>
       )}
+
+      {who === 'me' && <QuestsCard />}
 
       {who === 'me' && mySeries.length > 0 && (
         <section aria-label="Mes séries" className="card pad stack" style={{ gap: 8 }}>

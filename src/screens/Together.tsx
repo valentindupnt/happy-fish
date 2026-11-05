@@ -8,6 +8,7 @@ import { TaskRow } from '../components/TaskRow'
 import { Icon, Sheet } from '../components/ui'
 import type { AddGoalInit } from '../components/AddGoal'
 import { Challenges } from '../components/Challenges'
+import { WallOfFame } from '../components/Quests'
 
 function safeLink(link: string | null): string | null {
   if (!link) return null
@@ -31,6 +32,8 @@ export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; o
       </header>
 
       <Challenges />
+
+      <WallOfFame />
 
       <div className="row-between">
         <h2 className="h2">Objectifs communs</h2>

@@ -171,3 +171,20 @@ export interface MonthRecap {
   treats: number
   perfect_days: number
 }
+
+export interface QuestTemplate { id: string; profile_id: string; title: string; hard: boolean; archived: boolean }
+
+export interface DailyQuest {
+  id: string
+  profile_id: string
+  title: string
+  hard: boolean
+  day: string
+  slot: number
+  streak_base: number
+  streak: number
+  done_at: string | null
+  photo_path: string | null
+  kept: boolean
+  coins: number
+}

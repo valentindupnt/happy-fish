@@ -4,7 +4,7 @@ import { supabase, errorText } from './supabase'
 import { addDays, todayParis, weekStart } from './dates'
 import type { VisitorBook, VisitorFound } from './visitors'
 import type { DecoSlot, Gift, SeriesDef, SeriesFound } from './deco'
-import type { Category, Challenge, ChallengeRoll, Couple, CoupleItem, FishStatus, ForceMessage, Goal, Message, Profile, Purchase, Review, ShopItem, Streak, Suggestion, SurpriseIdea, Task, Wish } from './types'
+import type { Category, Challenge, ChallengeRoll, Couple, CoupleItem, DailyQuest, FishStatus, ForceMessage, Goal, Message, Profile, Purchase, QuestTemplate, Review, ShopItem, Streak, Suggestion, SurpriseIdea, Task, Wish } from './types'
 
 interface State {
   loading: boolean
@@ -34,6 +34,8 @@ interface State {
   series: SeriesDef[]
   seriesFound: SeriesFound[]
   gifts: Gift[]
+  questTemplates: QuestTemplate[]
+  dailyQuests: DailyQuest[]
 }
 
 const EMPTY: State = {
@@ -41,11 +43,11 @@ const EMPTY: State = {
   goals: [], tasks: [], wishes: [], messages: [], force: [], fish: [],
   shopItems: [], purchases: [], coupleItems: [], reviews: [], pot: 0,
   streaks: [], challenges: [], rolls: [], surpriseIdeas: [], visitorsFound: [], visitorBook: null,
-  decoSlots: [], series: [], seriesFound: [], gifts: [],
+  decoSlots: [], series: [], seriesFound: [], gifts: [], questTemplates: [], dailyQuests: [],
 }
 
 type Part = 'profiles' | 'couple' | 'categories' | 'suggestions' | 'goals' | 'wishes' | 'messages' | 'force' | 'fish' | 'shop' | 'reviews'
-  | 'streaks' | 'challenges' | 'surprises' | 'visitors' | 'deco'
+  | 'streaks' | 'challenges' | 'surprises' | 'visitors' | 'deco' | 'quests'
 
 interface Toast { id: number; text: string; tone: 'info' | 'error' }
 
@@ -206,6 +208,19 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
         return { decoSlots: [] as DecoSlot[], series: [] as SeriesDef[], seriesFound: [] as SeriesFound[], gifts: [] as Gift[] }
       }
     },
+    // Les quêtes annexes ne bloquent jamais l'app : sans elles (base pas encore migrée), elles restent vides
+    quests: async () => {
+      try {
+        const [questTemplates, dailyQuests] = await Promise.all([
+          must<QuestTemplate[]>(supabase.from('quest_templates').select('id, profile_id, title, hard, archived').eq('archived', false).order('created_at')),
+          must<DailyQuest[]>(supabase.from('daily_quests').select('id, profile_id, title, hard, day, slot, streak_base, streak, done_at, photo_path, kept, coins')
+            .order('day', { ascending: false }).order('slot').limit(400)),
+        ])
+        return { questTemplates: questTemplates || [], dailyQuests: dailyQuests || [] }
+      } catch {
+        return { questTemplates: [] as QuestTemplate[], dailyQuests: [] as DailyQuest[] }
+      }
+    },
   }), [userId])
 
   const reload: Store['reload'] = useCallback(async (what) => {
@@ -240,11 +255,12 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
         supabase.rpc('ensure_week', { p_week: ws }),
         supabase.rpc('ensure_week', { p_week: addDays(ws, 7) }),
         supabase.rpc('ensure_reviews'),
+        supabase.rpc('ensure_daily_quests'),
       ])
       const parts = await Promise.all([
         loaders.couple(), loaders.categories(), loaders.suggestions(), loaders.goals(),
         loaders.wishes(), loaders.messages(), loaders.force(), loaders.fish(), loaders.shop(), loaders.reviews(),
-        loaders.streaks(), loaders.challenges(), loaders.surprises(), loaders.visitors(), loaders.deco(),
+        loaders.streaks(), loaders.challenges(), loaders.surprises(), loaders.visitors(), loaders.deco(), loaders.quests(),
       ])
       const tasks = await fetchTasks(range.current.from, range.current.to)
       const next = Object.assign({ ...EMPTY, loading: false, me, partner, tasks }, ...parts) as State
@@ -374,6 +390,7 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deco_slots' }, () => schedule('deco'))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gifts', filter: `couple_id=eq.${coupleId}` }, () => { schedule('deco'); schedule('shop'); schedule('fish') })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'series_found' }, () => { schedule('deco'); schedule('fish') })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_quests', filter: `couple_id=eq.${coupleId}` }, () => { schedule('quests'); schedule('fish') })
       .subscribe()
     return () => { clearTimeout(timer); supabase.removeChannel(channel) }
   }, [coupleId, reload, reloadTasks])
