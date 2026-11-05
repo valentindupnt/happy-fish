@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { supabase, errorText } from './supabase'
 import { addDays, todayParis, weekStart } from './dates'
 import type { VisitorBook, VisitorFound } from './visitors'
+import type { DecoSlot, Gift, SeriesDef, SeriesFound } from './deco'
 import type { Category, Challenge, ChallengeRoll, Couple, CoupleItem, FishStatus, ForceMessage, Goal, Message, Profile, Purchase, Review, ShopItem, Streak, Suggestion, SurpriseIdea, Task, Wish } from './types'
 
 interface State {
@@ -29,6 +30,10 @@ interface State {
   surpriseIdeas: SurpriseIdea[]
   visitorsFound: VisitorFound[]
   visitorBook: VisitorBook | null
+  decoSlots: DecoSlot[]
+  series: SeriesDef[]
+  seriesFound: SeriesFound[]
+  gifts: Gift[]
 }
 
 const EMPTY: State = {
@@ -36,10 +41,11 @@ const EMPTY: State = {
   goals: [], tasks: [], wishes: [], messages: [], force: [], fish: [],
   shopItems: [], purchases: [], coupleItems: [], reviews: [], pot: 0,
   streaks: [], challenges: [], rolls: [], surpriseIdeas: [], visitorsFound: [], visitorBook: null,
+  decoSlots: [], series: [], seriesFound: [], gifts: [],
 }
 
 type Part = 'profiles' | 'couple' | 'categories' | 'suggestions' | 'goals' | 'wishes' | 'messages' | 'force' | 'fish' | 'shop' | 'reviews'
-  | 'streaks' | 'challenges' | 'surprises' | 'visitors'
+  | 'streaks' | 'challenges' | 'surprises' | 'visitors' | 'deco'
 
 interface Toast { id: number; text: string; tone: 'info' | 'error' }
 
@@ -186,6 +192,20 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
         return { visitorsFound: [] as VisitorFound[], visitorBook: null }
       }
     },
+    // Décorations, collections et cadeaux : sans eux (base pas encore migrée), la boutique reste comme avant
+    deco: async () => {
+      try {
+        const [decoSlots, series, seriesFound, gifts] = await Promise.all([
+          must<DecoSlot[]>(supabase.from('deco_slots').select('profile_id, place, slot, item_id')),
+          must<SeriesDef[]>(supabase.from('series').select('id, name, reward')),
+          must<SeriesFound[]>(supabase.from('series_found').select('profile_id, series_id, reward')),
+          must<Gift[]>(supabase.from('gifts').select('id, from_id, to_id, item_id, price, message, created_at').order('created_at')),
+        ])
+        return { decoSlots: decoSlots || [], series: series || [], seriesFound: seriesFound || [], gifts: gifts || [] }
+      } catch {
+        return { decoSlots: [] as DecoSlot[], series: [] as SeriesDef[], seriesFound: [] as SeriesFound[], gifts: [] as Gift[] }
+      }
+    },
   }), [userId])
 
   const reload: Store['reload'] = useCallback(async (what) => {
@@ -224,7 +244,7 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       const parts = await Promise.all([
         loaders.couple(), loaders.categories(), loaders.suggestions(), loaders.goals(),
         loaders.wishes(), loaders.messages(), loaders.force(), loaders.fish(), loaders.shop(), loaders.reviews(),
-        loaders.streaks(), loaders.challenges(), loaders.surprises(), loaders.visitors(),
+        loaders.streaks(), loaders.challenges(), loaders.surprises(), loaders.visitors(), loaders.deco(),
       ])
       const tasks = await fetchTasks(range.current.from, range.current.to)
       const next = Object.assign({ ...EMPTY, loading: false, me, partner, tasks }, ...parts) as State
@@ -351,6 +371,9 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'challenges', filter: `couple_id=eq.${coupleId}` }, () => schedule('challenges'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'challenge_rolls', filter: `couple_id=eq.${coupleId}` }, () => schedule('challenges'))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'visitor_found', filter: `couple_id=eq.${coupleId}` }, () => { schedule('visitors'); schedule('fish') })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deco_slots' }, () => schedule('deco'))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gifts', filter: `couple_id=eq.${coupleId}` }, () => { schedule('deco'); schedule('shop'); schedule('fish') })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'series_found' }, () => { schedule('deco'); schedule('fish') })
       .subscribe()
     return () => { clearTimeout(timer); supabase.removeChannel(channel) }
   }, [coupleId, reload, reloadTasks])

@@ -466,3 +466,25 @@ button.bowl { background: none; border: none; }
 .arrival { display: flex; align-items: center; gap: 14px; }
 .arrival-pic { flex-shrink: 0; padding: 10px; background: #E8F4FF; border: 2px solid var(--ink); border-radius: 14px; }
 @media (prefers-reduced-motion: reduce) { .visitor-pass, .visitor-pass-inner { animation-duration: 0.01s; } }
+
+/* Décorations de l'aquarium : une rangée au pied du décor, dessins animés sur 2 ou 3 images */
+.deco-row { position: absolute; left: 4%; right: 4%; bottom: 8%; display: flex; align-items: flex-end; z-index: 1; pointer-events: none; --dpx: calc(100cqw / 72); }
+.tank .deco-row { bottom: 7%; --dpx: calc(100cqw / 84); }
+.tank .deco-row.common { --dpx: calc(100cqw / 130); left: 2%; right: 2%; bottom: 20%; }
+.deco-slot { flex: 1 1 0; display: flex; justify-content: center; align-items: flex-end; min-width: 0; }
+.deco-slot svg { flex: none; }
+.deco-frame { opacity: 0; animation-timing-function: steps(1, end); animation-iteration-count: infinite; }
+.deco-n2 { animation-name: deco2; }
+.deco-n3 { animation-name: deco3; }
+@keyframes deco2 { 0%, 49.99% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes deco3 { 0%, 33.32% { opacity: 1; } 33.33%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .deco-frame { animation: none; } .deco-frame:first-child { opacity: 1; } }
+
+/* Poser les décorations : 5 ou 4 emplacements, et la liste des objets possédés */
+.deco-picks { display: grid; gap: 8px; }
+.deco-pick { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--line); border-radius: 12px; background: transparent; font-size: 22px; font-weight: 800; color: var(--muted, #5A5A7A); padding: 2px; overflow: hidden; cursor: pointer; }
+.deco-pick.full { border: 2px solid var(--ink); background: #E8F4FF; }
+.shop-item.pick { cursor: pointer; font: inherit; }
+.shop-item.pick:disabled { cursor: default; }
+
+.bowl-glass.has-deco .bowl-plant { display: none; }

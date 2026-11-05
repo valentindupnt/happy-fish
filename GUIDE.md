@@ -54,6 +54,8 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 
 **Lot 3** : humeurs du poisson (il dort de 22 h à 7 h, danse quand la journée est complète, boude à partir de 2 ratés dans la semaine), séries, minuteur, dé des défis, roue des surprises, décor de Noël en décembre (neige, sapin, bonnet pour les poissons sans accessoire), récap du mois, mode hors ligne, widget.
 
+**Décorations, cadeaux et collections (migration 008, pas encore appliquée)** : 30 décorations payées avec ses propres pièces, posées à la main sur 5 emplacements fixes dans son aquarium (4 par personne dans l'aquarium commun, dès le premier habitat partagé). Elles restent dans le bocal et peuvent être déplacées dans l'aquarium commun. 7 collections avec un bonus de pièces quand elles sont complètes. Objets de Noël en vente du 1er au 25 décembre, puis gardés dans la vitrine. On peut offrir un objet à l'autre (message de 140 caractères maximum) ; si le niveau manque, le cadeau attend en réserve.
+
 **Notifications (lot 2)** : petit mot reçu, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h, nouveau visiteur dans le carnet (chaque notification se coupe dans Paramètres).
 
 ## 4. Les règles (écrites dans la base)
@@ -134,7 +136,8 @@ npm run build                # vérification complète
 | `src/lib/mood.ts`, `src/lib/fx.ts`, `src/lib/season.ts` | Humeurs du poisson, bulles, décor de saison |
 | `src/lib/widgetScript.ts` | Script Scriptable généré avec la clé de chacun |
 | `src/lib/visitors.ts` | Catalogue des 23 visiteurs (le même que dans la base, vérifié par `tests/visitors.test.ts`) ; dessins dans `src/components/Visitors.tsx`, écran du carnet dans `src/components/Carnet.tsx` |
-| `tests/` | 65 tests (`db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
+| `src/lib/deco.ts` | Décorations : emplacements, saisons, groupes ; dessins dans `src/components/Deco.tsx`, éditeur `DecoEditor.tsx`, rayon `DecoShop.tsx`, cadeaux `Gifts.tsx` |
+| `tests/` | 76 tests (`deco.test.ts` décorations, cadeaux, collections, `db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
 
 ## 7. Dépannage
 

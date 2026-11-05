@@ -4,12 +4,14 @@ import { FREE_COLORS, ItemPreview, PALETTES } from '../components/Fish'
 import type { FishColor, ItemKind, ShopItem } from '../lib/types'
 import { Bar, Coin, Icon } from '../components/ui'
 import { HABITATS } from '../lib/xp'
+import { DecoShop } from '../components/DecoShop'
 
 const SECTIONS: Array<{ kind: ItemKind; title: string; hint?: string }> = [
   { kind: 'color', title: 'Couleurs' },
   { kind: 'bowl', title: 'Bocaux' },
   { kind: 'hat', title: 'Habits et accessoires' },
   { kind: 'pet', title: 'Familiers', hint: 'Un compagnon qui vit avec ton poisson, dès le niveau 12.' },
+  { kind: 'deco', title: 'Décorations de mon aquarium' },
   { kind: 'decor', title: 'Décorations communes', hint: 'Payées avec la cagnotte. Chaque habitat ouvre les siennes.' },
 ]
 
@@ -148,6 +150,7 @@ export function Shop({ onBack }: { onBack: () => void }) {
       </section>
 
       {SECTIONS.filter((sec) => !(position >= 1 && sec.kind === 'bowl')).map((sec) => {
+        if (sec.kind === 'deco') return <DecoShop key="deco" />
         const items = [...freeItems(sec.kind), ...shopItems.filter((i) => i.kind === sec.kind)]
           .sort((a, b) => sec.kind === 'decor' ? (a.habitat - b.habitat) || (a.price - b.price) : (a.min_level - b.min_level) || (a.position - b.position))
         if (!items.length) return null

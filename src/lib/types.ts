@@ -18,6 +18,8 @@ export interface Profile {
   notify_weekly: boolean
   /** Absent tant que la migration 007 n'est pas appliquée */
   notify_visitors?: boolean
+  /** Absent tant que la migration 008 n'est pas appliquée */
+  notify_gifts?: boolean
 }
 
 export interface Couple {
@@ -100,7 +102,8 @@ export interface FishStatus {
   coins: number
 }
 
-export type ItemKind = 'color' | 'bowl' | 'hat' | 'pet' | 'decor'
+/** « decor » : décoration commune (cagnotte). « deco » : décoration perso de son aquarium (ses pièces). */
+export type ItemKind = 'color' | 'bowl' | 'hat' | 'pet' | 'decor' | 'deco'
 
 export interface ShopItem {
   id: string
@@ -112,6 +115,10 @@ export interface ShopItem {
   position: number
   /** Décorations : habitat à partir duquel on peut l'acheter */
   habitat: number
+  /** Collection (absent tant que la migration 008 n'est pas appliquée) */
+  series?: string | null
+  /** Objet de saison, acheté seulement pendant sa saison */
+  season?: string | null
 }
 
 export interface Purchase {

@@ -8,6 +8,8 @@ import { Bowl, Fish, PALETTES, SoloFish, Tank } from '../components/Fish'
 import { Bar, Coin } from '../components/ui'
 import { MonthRecapSheet, monthName } from '../components/MonthRecap'
 import { CarnetCard, CarnetSheet, VisitorPass } from '../components/Carnet'
+import { DecoEditor } from '../components/DecoEditor'
+import { slotsOf } from '../lib/deco'
 
 type View = 'duo' | 'me' | 'partner'
 
@@ -61,7 +63,7 @@ function FishSheet({ p, owner }: { p: Profile; owner: string }) {
 }
 
 export function Aquarium({ openShop }: { openShop: () => void }) {
-  const { me, partner, partnerName, fishOf, userId, couple, coupleItems, tasks, today } = useStore()
+  const { me, partner, partnerName, fishOf, userId, couple, coupleItems, tasks, today, decoSlots } = useStore()
   const [view, setView] = useState<View>('duo')
   const [recap, setRecap] = useState(false)
   const [carnet, setCarnet] = useState(false)
@@ -94,15 +96,16 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
       <section aria-label="Vos poissons" className="stack" style={{ gap: 10 }}>
         <div className="scene-wrap">
         {solo ? (
-          <SoloFish {...fishProps(solo.p)} habitat={position} />
+          <SoloFish {...fishProps(solo.p)} habitat={position} deco={slotsOf(decoSlots, solo.p.id, 'own')} />
         ) : position >= 1 ? (
           <Tank tall habitat={position} habitatName={habitat.name} fishes={owners.map(({ p }) => fishProps(p))}
-            decor={coupleItems.map((c) => c.item_id)} noel={season === 'noel'} />
+            decor={coupleItems.map((c) => c.item_id)} noel={season === 'noel'}
+            deco={[...slotsOf(decoSlots, me.id, 'common'), ...slotsOf(decoSlots, partner?.id, 'common')]} />
         ) : (
           <div className={`scene-bowls${partner ? '' : ' single'}`}>
             {owners.map(({ p }, i) => {
               const fp = fishProps(p)
-              return <Bowl key={p.id} noel={season === 'noel'} style={p.bowl_style} flip={i === 1} {...fp} scale={fp.scale * 1.3} />
+              return <Bowl key={p.id} noel={season === 'noel'} style={p.bowl_style} flip={i === 1} {...fp} scale={fp.scale * 1.3} deco={slotsOf(decoSlots, p.id, 'own')} />
             })}
           </div>
         )}
@@ -125,6 +128,13 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
         </section>
       ) : (
         <FishSheet p={me} owner={owners[0].owner} />
+      )}
+
+      {(solo ? solo.p.id === userId : true) && !(partner && view === 'duo' && position < 1) && (
+        <DecoEditor place={partner && view === 'duo' ? 'common' : 'own'} openShop={openShop} />
+      )}
+      {partner && view === 'duo' && position < 1 && (
+        <button type="button" className="btn" onClick={() => setView('me')}>Décorer mon bocal</button>
       )}
 
       <CarnetCard tab={partner ? view : 'me'} onOpen={() => setCarnet(true)} />

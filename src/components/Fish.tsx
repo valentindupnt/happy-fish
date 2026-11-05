@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { FishColor } from '../lib/types'
 import type { Mood } from '../lib/mood'
+import { DecoPreview, DecoRow } from './Deco'
 
 // Sprite 18 × 12 : o contour, b corps, l ventre, f nageoires, h reflet, w blanc de l'œil, k pupille
 export const SPRITE = [
@@ -160,8 +161,10 @@ export function Fish({ color, width = 54, flip = false, label, hat, mood = 'norm
 }
 
 /** Gros plan sur un seul poisson, qui nage dans l'eau de son habitat */
-export function SoloFish({ color, hat, pet, name, mood = 'normal', stade = 1, scale = 1, habitat = 0 }: {
+export function SoloFish({ color, hat, pet, name, mood = 'normal', stade = 1, scale = 1, habitat = 0, deco }: {
   color: FishColor; hat?: string | null; pet?: string | null; name: string; mood?: Mood; stade?: number; scale?: number; habitat?: number
+  /** Décorations posées dans cet aquarium (5 emplacements) */
+  deco?: Array<string | null>
 }) {
   const [boop, trigger] = useBoop()
   return (
@@ -169,6 +172,7 @@ export function SoloFish({ color, hat, pet, name, mood = 'normal', stade = 1, sc
       <div className="tank-water" />
       {habitat >= 4 && <div className="tank-rays" aria-hidden="true" />}
       <div className="tank-sand" />
+      {deco && <DecoRow slots={deco} />}
       <div className="bowl-bubble bowl-bubble-a" />
       <div className="bowl-bubble bowl-bubble-b" />
       {pet && <div className="solo-pet"><Pet kind={pet} width={40} /></div>}
@@ -302,6 +306,7 @@ export function ItemPreview({ kind, id, color }: { kind: string; id: string; col
   if (kind === 'hat') return <Fish color={color} hat={id} width={44} />
   if (kind === 'pet') return <Pet kind={id} width={36} />
   if (kind === 'decor') return <Decor kind={id} width={34} />
+  if (kind === 'deco') return <DecoPreview id={id} />
   return (
     <div className={`mini-bowl ${id}`} aria-hidden="true"><div /></div>
   )
@@ -319,16 +324,18 @@ export function Snow({ count = 7 }: { count?: number }) {
 }
 
 /** Petit bocal pixel art avec un poisson qui nage */
-export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = 'rond', mood = 'normal', noel = false, stade = 1 }: {
+export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = 'rond', mood = 'normal', noel = false, stade = 1, deco }: {
   color: FishColor; scale?: number; name: string; flip?: boolean; hat?: string | null; pet?: string | null; style?: string; mood?: Mood; noel?: boolean; stade?: number
+  deco?: Array<string | null>
 }) {
   const [boop, trigger] = useBoop()
   return (
     <button type="button" className={`bowl bowl-${style}${mood === 'sleep' ? ' sleepy' : ''}`} aria-label={`${name} dans son bocal, toucher pour lui dire coucou`} onClick={trigger}>
       <div className="bowl-rim" />
-      <div className="bowl-glass">
+      <div className={deco?.some(Boolean) ? 'bowl-glass has-deco' : 'bowl-glass'}>
         <div className="bowl-water" />
         <div className="bowl-sand" />
+        {deco && <DecoRow slots={deco} />}
         {noel ? <div className="bowl-sapin"><Decor kind="sapin" width={22} /></div> : <div className="bowl-plant bowl-plant-a" />}
         <div className="bowl-plant bowl-plant-b" />
         {noel && <Snow count={5} />}
@@ -349,8 +356,10 @@ export function Bowl({ color, scale = 1, name, flip = false, hat, pet, style = '
 export interface TankFish { color: FishColor; hat?: string | null; pet?: string | null; scale: number; name: string; mood?: Mood; stade?: number }
 
 /** L'aquarium commun : son décor change avec l'habitat (1 aquarium à deux, 2 grand aquarium, 3 récif, 4 lagon) */
-export function Tank({ fishes, decor, children, noel = false, habitat = 1, habitatName = 'Aquarium', tall = false }: {
+export function Tank({ fishes, decor, children, noel = false, habitat = 1, habitatName = 'Aquarium', tall = false, deco }: {
   fishes: TankFish[]; decor: string[]; children?: ReactNode; noel?: boolean; habitat?: number; habitatName?: string; tall?: boolean
+  /** Décorations posées par vous deux dans l'aquarium commun (4 emplacements chacun) */
+  deco?: Array<string | null>
 }) {
   const [boop, trigger] = useBoop()
   const base = tall ? 72 : 46
@@ -362,6 +371,7 @@ export function Tank({ fishes, decor, children, noel = false, habitat = 1, habit
       <div className="tank-decor">
         {(noel ? [...decor, 'sapin'] : decor).map((d) => <Decor key={d} kind={d} width={d === 'plante' || d === 'algues' ? 34 : d === 'sapin' ? 38 : 40} />)}
       </div>
+      {deco && <DecoRow slots={deco} className="common" />}
       {noel && <Snow count={10} />}
       {noel && <div className="tank-garland" aria-hidden="true" />}
       <div className="tank-pets">

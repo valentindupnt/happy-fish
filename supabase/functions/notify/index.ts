@@ -26,6 +26,7 @@ type Profile = {
   notify_evening: boolean
   notify_weekly: boolean
   notify_visitors?: boolean
+  notify_gifts?: boolean
 }
 
 let config: Record<string, string> | null = null
@@ -137,6 +138,18 @@ async function onVisitor(id: string) {
   for (const r of to) await send(r.id, `${v.arrival} !`, body, '/?tab=aquarium')
 }
 
+/** Un cadeau est arrivé : « Julie t'a offert Phare rayé » */
+async function onGift(id: string) {
+  const { data: g } = await db.from('gifts').select('*, shop_items(name)').eq('id', id).single()
+  if (!g) return
+  const people = await profilesOf(g.couple_id)
+  const to = people.find((p) => p.id === g.to_id)
+  const from = people.find((p) => p.id === g.from_id)
+  if (!to || to.notify_gifts === false) return
+  const name = (g.shop_items as { name: string } | null)?.name || 'un objet'
+  await send(to.id, nameFor(to, from), `t’a offert : ${name}${g.message ? ` « ${String(g.message).slice(0, 100)} »` : ''}`, '/?tab=aquarium')
+}
+
 async function onTick() {
   const now = parisNow()
   let count = 0
@@ -188,6 +201,7 @@ Deno.serve(async (req) => {
       if (payload.type === 'message') await onMessage(payload.id)
       else if (payload.type === 'check') await onCheck(payload.id)
       else if (payload.type === 'visitor') await onVisitor(payload.id)
+      else if (payload.type === 'gift') await onGift(payload.id)
       else if (payload.type === 'tick') return json({ sent: await onTick() })
       return json({ ok: true })
     }

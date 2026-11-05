@@ -21,6 +21,7 @@ import { TaskSheet } from './components/TaskSheet'
 import { Fish } from './components/Fish'
 import { Icon, Toasts } from './components/ui'
 import { CarnetSheet, VisitorArrival } from './components/Carnet'
+import { GiftArrival } from './components/Gifts'
 
 type Tab = 'today' | 'together' | 'chat' | 'aquarium'
 
@@ -145,6 +146,7 @@ function Main() {
       )}
       {focus && <FocusTimer focus={focus} onClose={() => setFocus(null)} />}
       {!focus && <VisitorArrival onOpenCarnet={() => { setTab('aquarium'); setView('tabs'); setCarnet(true) }} />}
+      {!focus && <GiftArrival onOpenShop={() => setView('shop')} />}
       {carnet && <CarnetSheet initial="duo" onClose={() => setCarnet(false)} />}
     </>
   )
