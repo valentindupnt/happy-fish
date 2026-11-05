@@ -19,6 +19,9 @@ const ICONS: Record<string, ReactNode> = {
   lock: <><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
   trash: <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />,
   edit: <path d="M4 20h4L19 9l-4-4L4 16v4z" />,
+  photo: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="10" r="1.6" /><path d="M21 16l-5-5-9 8" /></>,
+  up: <path d="M12 19V5M5 12l7-7 7 7" />,
+  down: <path d="M12 5v14M5 12l7 7 7-7" />,
 }
 
 export function Icon({ name, size = 22, stroke = 2.2 }: { name: keyof typeof ICONS | string; size?: number; stroke?: number }) {

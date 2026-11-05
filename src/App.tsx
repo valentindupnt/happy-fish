@@ -22,6 +22,7 @@ import { Fish } from './components/Fish'
 import { Icon, Toasts } from './components/ui'
 import { CarnetSheet, VisitorArrival } from './components/Carnet'
 import { GiftArrival } from './components/Gifts'
+import { useKeyboard } from './lib/keyboard'
 
 type Tab = 'today' | 'together' | 'chat' | 'aquarium'
 
@@ -77,6 +78,7 @@ function Main() {
   const [seenChat, setSeenChat] = useState(() => localStorageGet('hf-seen-chat'))
   const scrollRef = useRef<HTMLDivElement>(null)
   const [focus, setFocus] = useState<FocusState | null>(() => readFocus())
+  useKeyboard()
 
   const openTask = useCallback((t: Task) => setOpenTaskItem(t), [])
   const openAdd = useCallback((day: string) => setAdding({ day }), [])

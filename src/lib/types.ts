@@ -82,9 +82,10 @@ export interface Wish {
 export interface Message {
   id: string
   author_id: string
-  kind: 'text' | 'bubble' | 'treat'
+  kind: 'text' | 'bubble' | 'treat' | 'image'
   body: string | null
   task_id: string | null
+  image_path?: string | null
   created_at: string
 }
 

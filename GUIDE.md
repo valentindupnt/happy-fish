@@ -42,7 +42,7 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 | **Aujourd'hui** | Le poisson et son humeur, le bilan de la semaine passée et les surprises, le récap du mois (les 5 premiers jours), les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher (avec des bulles), reporter, mes séries, compteur de ratés |
 | **Ma semaine** | Vue jour par jour, vue mois, préparation de la semaine, ajout sur un jour précis, semaine de Julie |
 | **Ensemble** | Défi de la semaine tiré au dé, objectifs communs (XP pour les deux), envies avec notes et lien, roue des surprises |
-| **Petits mots** | Chat en direct, bulles, friandises (+1 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif |
+| **Petits mots** | Chat en direct, photos (avec légende, en grand d'un tap), bulles, friandises (+1 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif. La barre d'onglets se cache quand le clavier est ouvert |
 | **Aquarium** | La scène de l'habitat en grand (bocaux, puis aquarium, récif, lagon), « Ensemble » ou gros plan sur un poisson, sa fiche avec la silhouette du prochain stade, les visiteurs qui passent, le carnet des visiteurs, le prochain habitat, le récap du mois |
 | **Boutique** | « Notre habitat » en tête (conditions, cagnotte, achat ensemble), couleurs, bocaux, habits et accessoires, familiers, décorations par habitat |
 | **Paramètres** | Surnom et couleur du poisson, surnoms, messages de force, notifications, widget de l'écran d'accueil, changement de mot de passe, déconnexion |
@@ -56,7 +56,9 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 
 **Décorations, cadeaux et collections (migration 008, pas encore appliquée)** : 30 décorations payées avec ses propres pièces, posées à la main sur 5 emplacements fixes dans son aquarium (4 par personne dans l'aquarium commun, dès le premier habitat partagé). Elles restent dans le bocal et peuvent être déplacées dans l'aquarium commun. 7 collections avec un bonus de pièces quand elles sont complètes. Objets de Noël en vente du 1er au 25 décembre, puis gardés dans la vitrine. On peut offrir un objet à l'autre (message de 140 caractères maximum) ; si le niveau manque, le cadeau attend en réserve.
 
-**Notifications (lot 2)** : petit mot reçu, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h, nouveau visiteur dans le carnet (chaque notification se coupe dans Paramètres).
+**Photos (migration 009)** : rangées dans l'espace de stockage privé `chat-images` de Supabase (rubrique **Storage**), un dossier par duo que seuls ses deux membres peuvent lire. Chaque photo est réduite à 1 600 px avant l'envoi (environ 300 Ko), soit quelques milliers de photos dans le 1 Go de l'offre gratuite.
+
+**Notifications (lot 2)** : petit mot ou photo reçus, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h, nouveau visiteur dans le carnet (chaque notification se coupe dans Paramètres).
 
 ## 4. Les règles (écrites dans la base)
 
@@ -95,7 +97,7 @@ Personne ne peut modifier l'XP, une coche ou les données de l'autre en contourn
 | L'apparence, un écran | Le code, poussé sur `main` : Vercel redéploie en 1 à 2 minutes |
 | Une règle de la base | Un fichier de migration (voir ci-dessous) |
 
-**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql`, `006_progression.sql` et `007_visitors.sql` sont déjà appliquées sur le projet `happy-fish`.
+**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql`, `006_progression.sql`, `007_visitors.sql`, `008_deco.sql` et `009_chat_photos.sql` sont déjà appliquées sur le projet `happy-fish`.
 
 ### Le widget, côté coulisses
 - Le widget passe par l'app gratuite **Scriptable**. Dans Paramètres, **Installer le widget** donne les étapes et copie un script qui contient une clé personnelle.

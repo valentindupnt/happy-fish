@@ -101,11 +101,14 @@ async function onMessage(id: string) {
   const people = await profilesOf(msg.couple_id)
   const author = people.find((p) => p.id === msg.author_id)
   for (const r of people.filter((p) => p.id !== msg.author_id)) {
-    if (msg.kind === 'text' && !r.notify_messages) continue
-    if (msg.kind !== 'text' && !r.notify_gestures) continue
+    const isWord = msg.kind === 'text' || msg.kind === 'image'
+    if (isWord && !r.notify_messages) continue
+    if (!isWord && !r.notify_gestures) continue
     const name = nameFor(r, author)
     const body = msg.kind === 'text'
       ? String(msg.body || '').slice(0, 160)
+      : msg.kind === 'image'
+        ? (msg.body ? `📷 ${String(msg.body).slice(0, 150)}` : 't’a envoyé une photo')
       : msg.kind === 'treat'
         ? 't’a envoyé une friandise : +1 XP pour ton poisson'
         : 't’a envoyé une bulle'
