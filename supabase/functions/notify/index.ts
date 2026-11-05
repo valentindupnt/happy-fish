@@ -25,6 +25,7 @@ type Profile = {
   notify_checks: boolean
   notify_evening: boolean
   notify_weekly: boolean
+  notify_visitors?: boolean
 }
 
 let config: Record<string, string> | null = null
@@ -105,7 +106,7 @@ async function onMessage(id: string) {
     const body = msg.kind === 'text'
       ? String(msg.body || '').slice(0, 160)
       : msg.kind === 'treat'
-        ? 't’a envoyé une friandise : +2 XP pour ton poisson'
+        ? 't’a envoyé une friandise : +1 XP pour ton poisson'
         : 't’a envoyé une bulle'
     await send(r.id, name, body, '/?tab=chat')
   }
@@ -120,6 +121,20 @@ async function onCheck(id: string) {
   for (const r of people.filter((p) => p.id !== task.done_by && p.notify_checks)) {
     await send(r.id, nameFor(r, actor), `a coché « ${title} »`)
   }
+}
+
+/** Un visiteur est arrivé : à celui qui l'a trouvé, ou aux deux pour un visiteur à deux */
+async function onVisitor(id: string) {
+  const { data: f } = await db.from('visitor_found').select('*, visitors(arrival, scope)').eq('id', id).single()
+  if (!f) return
+  const v = f.visitors as { arrival: string; scope: string } | null
+  if (!v) return
+  const people = await profilesOf(f.couple_id)
+  const to = (f.profile_id ? people.filter((p) => p.id === f.profile_id) : people).filter((p) => p.notify_visitors !== false)
+  const body = f.profile_id
+    ? `Grâce à tes efforts. +${f.reward} pièces pour toi.`
+    : `Grâce à vous deux. +${f.reward} pièces dans la cagnotte.`
+  for (const r of to) await send(r.id, `${v.arrival} !`, body, '/?tab=aquarium')
 }
 
 async function onTick() {
@@ -172,6 +187,7 @@ Deno.serve(async (req) => {
     if (req.headers.get('x-hook-secret') === cfg.hf_hook_secret && cfg.hf_hook_secret) {
       if (payload.type === 'message') await onMessage(payload.id)
       else if (payload.type === 'check') await onCheck(payload.id)
+      else if (payload.type === 'visitor') await onVisitor(payload.id)
       else if (payload.type === 'tick') return json({ sent: await onTick() })
       return json({ ok: true })
     }

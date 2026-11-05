@@ -439,3 +439,31 @@ button.bowl { background: none; border: none; }
 .cond { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--cream-ink); }
 .cond .dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--cream-ink); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
 .cond.ok .dot { background: var(--green); border-color: var(--green); color: #fff; }
+
+/* Carnet des visiteurs */
+.scene-wrap { position: relative; }
+.carnet-strip { display: flex; align-items: flex-end; gap: 10px; min-height: 34px; flex-wrap: wrap; }
+.gauge { display: flex; flex-direction: column; gap: 4px; }
+.gauge-head { display: flex; justify-content: space-between; gap: 8px; }
+.visitor-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.visitor-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border: 2px dashed var(--line); border-radius: 12px; text-align: center; min-width: 0; }
+.visitor-cell.found { border: 2px solid var(--ink); background: #E8F4FF; }
+.visitor-pic { height: 48px; display: flex; align-items: center; justify-content: center; }
+.visitor-name { font-size: 12px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.visitor-cell:not(.found) .visitor-name { color: var(--muted, #5A5A7A); }
+.visitor-sub { font-size: 11px; line-height: 1.25; color: var(--muted, #5A5A7A); display: inline-flex; align-items: center; gap: 3px; justify-content: center; flex-wrap: wrap; }
+.visitor-pass { position: absolute; top: 30%; height: 90px; z-index: 3; pointer-events: none; animation: visitorpass 11s linear 1 both; }
+.visitor-pass.pass-full { left: 0; right: 0; overflow: hidden; }
+.visitor-pass.in-bowls { top: 44%; }
+.visitor-pass.in-bowls.pass-left { left: 6%; right: 54%; border-radius: 0 0 40% 40%; }
+.visitor-pass.in-bowls.pass-right { left: 54%; right: 6%; border-radius: 0 0 40% 40%; }
+.visitor-pass.pass-left { left: 0; right: 50%; overflow: hidden; }
+.visitor-pass.pass-right { left: 50%; right: 0; overflow: hidden; }
+.visitor-pass-inner { position: absolute; top: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; animation: visitorx 11s linear 1 both, visitorbob 2.4s ease-in-out infinite; }
+.visitor-pass-name { font-size: 10px; font-weight: 800; background: rgba(255, 255, 255, 0.85); border-radius: 6px; padding: 1px 5px; color: var(--ink); white-space: nowrap; }
+@keyframes visitorpass { 0% { opacity: 0; } 6% { opacity: 1; } 94% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes visitorx { from { left: -80px; } to { left: calc(100% + 10px); } }
+@keyframes visitorbob { 0%, 100% { top: 0; } 50% { top: 8px; } }
+.arrival { display: flex; align-items: center; gap: 14px; }
+.arrival-pic { flex-shrink: 0; padding: 10px; background: #E8F4FF; border: 2px solid var(--ink); border-radius: 14px; }
+@media (prefers-reduced-motion: reduce) { .visitor-pass, .visitor-pass-inner { animation-duration: 0.01s; } }

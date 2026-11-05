@@ -44,7 +44,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
   }
 
   const treat = async () => {
-    if (await run(() => supabase.rpc('send_treat'), `Friandise envoyée, +2 XP pour ${partnerName}`)) {
+    if (await run(() => supabase.rpc('send_treat'), `Friandise envoyée, +1 XP pour ${partnerName}`)) {
       await reload(['messages', 'fish'])
     }
   }
@@ -82,7 +82,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
                   <div className="msg-time">{timeLabel(m.created_at)}</div>
                 </div>
               ) : m.kind === 'treat' ? (
-                <div className="gesture treat"><TreatIcon />{mine ? `Tu as envoyé une friandise à ${partnerName}` : `${partnerName} t’a envoyé une friandise, +2 XP`}</div>
+                <div className="gesture treat"><TreatIcon />{mine ? `Tu as envoyé une friandise à ${partnerName}` : `${partnerName} t’a envoyé une friandise`}</div>
               ) : (
                 <div className="gesture bubble"><BubbleIcon />{mine ? `Tu as envoyé une bulle à ${partnerName}` : `${partnerName} t’a envoyé une bulle`}</div>
               )}

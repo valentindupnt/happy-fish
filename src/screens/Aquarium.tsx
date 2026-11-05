@@ -7,6 +7,7 @@ import { seasonalHat, seasonOf } from '../lib/season'
 import { Bowl, Fish, PALETTES, SoloFish, Tank } from '../components/Fish'
 import { Bar, Coin } from '../components/ui'
 import { MonthRecapSheet, monthName } from '../components/MonthRecap'
+import { CarnetCard, CarnetSheet, VisitorPass } from '../components/Carnet'
 
 type View = 'duo' | 'me' | 'partner'
 
@@ -63,6 +64,7 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
   const { me, partner, partnerName, fishOf, userId, couple, coupleItems, tasks, today } = useStore()
   const [view, setView] = useState<View>('duo')
   const [recap, setRecap] = useState(false)
+  const [carnet, setCarnet] = useState(false)
   if (!me) return null
 
   const myFish = fishOf(userId)
@@ -90,6 +92,7 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
       </header>
 
       <section aria-label="Vos poissons" className="stack" style={{ gap: 10 }}>
+        <div className="scene-wrap">
         {solo ? (
           <SoloFish {...fishProps(solo.p)} habitat={position} />
         ) : position >= 1 ? (
@@ -103,6 +106,8 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
             })}
           </div>
         )}
+        <VisitorPass tab={view} bowls={!solo && position < 1 && !!partner} />
+        </div>
         {partner && (
           <div className="seg" role="group" aria-label="Qui regarder">
             <button type="button" aria-pressed={view === 'duo'} onClick={() => setView('duo')}>Ensemble</button>
@@ -122,6 +127,8 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
         <FishSheet p={me} owner={owners[0].owner} />
       )}
 
+      <CarnetCard tab={partner ? view : 'me'} onOpen={() => setCarnet(true)} />
+
       <section aria-label="Notre habitat" className="card pad cream" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span className="h2" style={{ fontSize: 15 }}>{nextHabitat ? `Prochain habitat : ${nextHabitat.name}` : 'Vous vivez dans le lagon'}</span>
@@ -135,6 +142,7 @@ export function Aquarium({ openShop }: { openShop: () => void }) {
       </section>
 
       <button type="button" className="btn" onClick={() => setRecap(true)}>Récap {monthName(today)}</button>
+      {carnet && <CarnetSheet initial={partner ? view : 'me'} onClose={() => setCarnet(false)} />}
       {recap && <MonthRecapSheet month={`${today.slice(0, 7)}-01`} onClose={() => setRecap(false)} />}
     </div>
   )

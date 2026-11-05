@@ -20,6 +20,7 @@ import type { FocusState } from './components/FocusTimer'
 import { TaskSheet } from './components/TaskSheet'
 import { Fish } from './components/Fish'
 import { Icon, Toasts } from './components/ui'
+import { CarnetSheet, VisitorArrival } from './components/Carnet'
 
 type Tab = 'today' | 'together' | 'chat' | 'aquarium'
 
@@ -63,7 +64,11 @@ function Splash() {
 
 function Main() {
   const { loading, me, messages, userId, today, online, pendingChecks } = useStore()
-  const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get('tab') === 'chat' ? 'chat' : 'today'))
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = new URLSearchParams(window.location.search).get('tab')
+    return t === 'chat' ? 'chat' : t === 'aquarium' ? 'aquarium' : 'today'
+  })
+  const [carnet, setCarnet] = useState(false)
   const [view, setView] = useState<'tabs' | 'week' | 'settings' | 'shop'>('tabs')
   const [adding, setAdding] = useState<AddGoalInit | null>(null)
   const [openTaskItem, setOpenTaskItem] = useState<Task | null>(null)
@@ -81,6 +86,7 @@ function Main() {
     if (!('serviceWorker' in navigator)) return
     const onMsg = (e: MessageEvent) => {
       if (e.data?.type === 'open' && String(e.data.url).includes('tab=chat')) { setTab('chat'); setView('tabs') }
+      if (e.data?.type === 'open' && String(e.data.url).includes('tab=aquarium')) { setTab('aquarium'); setView('tabs') }
     }
     navigator.serviceWorker.addEventListener('message', onMsg)
     return () => navigator.serviceWorker.removeEventListener('message', onMsg)
@@ -138,6 +144,8 @@ function Main() {
         />
       )}
       {focus && <FocusTimer focus={focus} onClose={() => setFocus(null)} />}
+      {!focus && <VisitorArrival onOpenCarnet={() => { setTab('aquarium'); setView('tabs'); setCarnet(true) }} />}
+      {carnet && <CarnetSheet initial="duo" onClose={() => setCarnet(false)} />}
     </>
   )
 }

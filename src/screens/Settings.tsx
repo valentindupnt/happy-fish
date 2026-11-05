@@ -253,6 +253,7 @@ function Notifications({ me, partnerLabel }: { me: Profile; partnerLabel: string
         <Switch checked={me.notify_checks} onChange={(v) => pref('notify_checks', v)} label={`Quand ${partnerLabel} coche un objectif`} />
         <Switch checked={me.notify_evening} onChange={(v) => pref('notify_evening', v)} label="Rappel du soir, vers 20 h" />
         <Switch checked={me.notify_weekly} onChange={(v) => pref('notify_weekly', v)} label="Bilan du lundi matin" />
+        <Switch checked={me.notify_visitors ?? true} onChange={(v) => pref('notify_visitors', v)} label="Nouveau visiteur dans le carnet" />
       </div>
     </section>
   )

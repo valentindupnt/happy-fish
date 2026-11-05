@@ -42,17 +42,19 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 | **Aujourd'hui** | Le poisson et son humeur, le bilan de la semaine passée et les surprises, le récap du mois (les 5 premiers jours), les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher (avec des bulles), reporter, mes séries, compteur de ratés |
 | **Ma semaine** | Vue jour par jour, vue mois, préparation de la semaine, ajout sur un jour précis, semaine de Julie |
 | **Ensemble** | Défi de la semaine tiré au dé, objectifs communs (XP pour les deux), envies avec notes et lien, roue des surprises |
-| **Petits mots** | Chat en direct, bulles, friandises (+2 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif |
-| **Aquarium** | La scène de l'habitat en grand (bocaux, puis aquarium, récif, lagon), « Ensemble » ou gros plan sur un poisson, sa fiche avec la silhouette du prochain stade, le prochain habitat, le récap du mois |
+| **Petits mots** | Chat en direct, bulles, friandises (+1 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif |
+| **Aquarium** | La scène de l'habitat en grand (bocaux, puis aquarium, récif, lagon), « Ensemble » ou gros plan sur un poisson, sa fiche avec la silhouette du prochain stade, les visiteurs qui passent, le carnet des visiteurs, le prochain habitat, le récap du mois |
 | **Boutique** | « Notre habitat » en tête (conditions, cagnotte, achat ensemble), couleurs, bocaux, habits et accessoires, familiers, décorations par habitat |
 | **Paramètres** | Surnom et couleur du poisson, surnoms, messages de force, notifications, widget de l'écran d'accueil, changement de mot de passe, déconnexion |
 | **Fiche d'un sous-objectif** | Minuteur plein écran : écran noir, le poisson nage, le sous-objectif se coche tout seul à la fin |
 
-**Progression longue (migration 006)** : 50 niveaux, 10 stades dessinés, 5 habitats achetés ensemble, écran Aquarium centré sur les poissons. Le carnet du récif (visiteurs à collectionner) est prévu au lot suivant.
+**Progression longue (migration 006)** : 50 niveaux, 10 stades dessinés, 5 habitats achetés ensemble, écran Aquarium centré sur les poissons.
+
+**Carnet des visiteurs (migration 007)** : 23 visiteurs à collectionner dès le premier jour. 14 perso (chacun les siens) et 9 à deux, qui arrivent soit par le nombre de sous-objectifs cochés, soit par les séries. Le carnet montre des jauges et des silhouettes ; un visiteur trouvé passe de temps en temps dans la scène (une ouverture sur trois, et à coup sûr le jour où la journée est complète) et rapporte des pièces. Une fenêtre « Un nouveau visiteur » s'ouvre à son arrivée, avec une notification.
 
 **Lot 3** : humeurs du poisson (il dort de 22 h à 7 h, danse quand la journée est complète, boude à partir de 2 ratés dans la semaine), séries, minuteur, dé des défis, roue des surprises, décor de Noël en décembre (neige, sapin, bonnet pour les poissons sans accessoire), récap du mois, mode hors ligne, widget.
 
-**Notifications (lot 2)** : petit mot reçu, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h.
+**Notifications (lot 2)** : petit mot reçu, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h, nouveau visiteur dans le carnet (chaque notification se coupe dans Paramètres).
 
 ## 4. Les règles (écrites dans la base)
 
@@ -70,12 +72,15 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 | Ratés | Sous-objectifs des jours passés de la semaine, ni faits ni retirés. Un raté reporté puis fait ne compte pas |
 | Friandise | +1 XP pour le poisson de l'autre, 3 par jour |
 | Surprise | Calculée le lundi matin : 3 ratés ou plus la semaine passée, et on doit une surprise à l'autre. Seul celui qui la reçoit peut la marquer comme reçue |
-| Pièces | 1 pièce pour 5 XP gagnés, moins les achats et les versements à la cagnotte. L'XP en réserve rapporte aussi des pièces, donc la cagnotte ne peut pas se bloquer |
+| Pièces | 1 pièce pour 5 XP gagnés, plus celles des visiteurs perso, moins les achats et les versements à la cagnotte. L'XP en réserve rapporte aussi des pièces, donc la cagnotte ne peut pas se bloquer |
 | Séries | Sous-objectifs d'un objectif récurrent faits d'affilée. Reporté puis fait : la série continue. Raté (jour passé, pas fait) : retour à zéro. Retiré, ou aujourd'hui pas encore fait : sans effet |
 | Défi de la semaine | Un seul lancer de dé par semaine, parmi les défis de la liste commune. Défi réussi : 10 pièces dans la cagnotte |
 | Roue des surprises | Tire une idée au hasard dans la liste commune. Le résultat n'est enregistré nulle part |
 | Hors ligne | L'app s'ouvre avec les dernières données. Les coches attendent le retour du réseau puis partent toutes seules ; les autres actions demandent le réseau |
 | Boutique | Chaque objet s'achète une fois, à partir d'un certain niveau. On ne peut équiper que ce qu'on possède |
+| Visiteurs perso | Sous-objectifs cochés par chacun (les siens et les communs) : 10, 30, 75, 150, 300, 500, 800, 1 200. Meilleure série sur un objectif récurrent : 3, 7, 14, 30, 60, 100 jours. Les pièces (de 5 à 80) s'ajoutent au solde de celui qui l'a trouvé |
+| Visiteurs à deux | Sous-objectifs cochés par le duo (chacun une fois) : 50, 200, 500, 1 000, 2 000. Série à deux, jours d'affilée où chacun a coché au moins un sous-objectif : 5, 21, 50, 100 jours. Les pièces (de 15 à 150) vont dans la cagnotte. Il faut un duo complet |
+| Visiteur trouvé | Il le reste, même si on décoche ensuite. Les séries comptent le record : une série cassée ne fait rien perdre |
 | Cagnotte | Chacun y verse ses pièces. L'habitat suivant s'achète d'un bouton dans la Boutique, par l'un ou l'autre, quand les deux poissons ont le niveau requis et que la cagnotte suffit. Elle sert aussi aux décorations, chaque habitat ouvrant les siennes |
 
 Personne ne peut modifier l'XP, une coche ou les données de l'autre en contournant l'app : ces actions passent par des fonctions de la base qui vérifient tout.
@@ -88,7 +93,7 @@ Personne ne peut modifier l'XP, une coche ou les données de l'autre en contourn
 | L'apparence, un écran | Le code, poussé sur `main` : Vercel redéploie en 1 à 2 minutes |
 | Une règle de la base | Un fichier de migration (voir ci-dessous) |
 
-**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql` et `006_progression.sql` sont déjà appliquées sur le projet `happy-fish`.
+**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql`, `006_progression.sql` et `007_visitors.sql` sont déjà appliquées sur le projet `happy-fish`.
 
 ### Le widget, côté coulisses
 - Le widget passe par l'app gratuite **Scriptable**. Dans Paramètres, **Installer le widget** donne les étapes et copie un script qui contient une clé personnelle.
@@ -128,7 +133,8 @@ npm run build                # vérification complète
 | `supabase/functions/widget/` | Données du widget de l'écran d'accueil |
 | `src/lib/mood.ts`, `src/lib/fx.ts`, `src/lib/season.ts` | Humeurs du poisson, bulles, décor de saison |
 | `src/lib/widgetScript.ts` | Script Scriptable généré avec la clé de chacun |
-| `tests/` | 50 tests (`db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
+| `src/lib/visitors.ts` | Catalogue des 23 visiteurs (le même que dans la base, vérifié par `tests/visitors.test.ts`) ; dessins dans `src/components/Visitors.tsx`, écran du carnet dans `src/components/Carnet.tsx` |
+| `tests/` | 65 tests (`db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
 
 ## 7. Dépannage
 

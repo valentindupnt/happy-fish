@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { supabase, errorText } from './supabase'
 import { addDays, todayParis, weekStart } from './dates'
+import type { VisitorBook, VisitorFound } from './visitors'
 import type { Category, Challenge, ChallengeRoll, Couple, CoupleItem, FishStatus, ForceMessage, Goal, Message, Profile, Purchase, Review, ShopItem, Streak, Suggestion, SurpriseIdea, Task, Wish } from './types'
 
 interface State {
@@ -26,17 +27,19 @@ interface State {
   challenges: Challenge[]
   rolls: ChallengeRoll[]
   surpriseIdeas: SurpriseIdea[]
+  visitorsFound: VisitorFound[]
+  visitorBook: VisitorBook | null
 }
 
 const EMPTY: State = {
   loading: true, me: null, partner: null, couple: null, categories: [], suggestions: [],
   goals: [], tasks: [], wishes: [], messages: [], force: [], fish: [],
   shopItems: [], purchases: [], coupleItems: [], reviews: [], pot: 0,
-  streaks: [], challenges: [], rolls: [], surpriseIdeas: [],
+  streaks: [], challenges: [], rolls: [], surpriseIdeas: [], visitorsFound: [], visitorBook: null,
 }
 
 type Part = 'profiles' | 'couple' | 'categories' | 'suggestions' | 'goals' | 'wishes' | 'messages' | 'force' | 'fish' | 'shop' | 'reviews'
-  | 'streaks' | 'challenges' | 'surprises'
+  | 'streaks' | 'challenges' | 'surprises' | 'visitors'
 
 interface Toast { id: number; text: string; tone: 'info' | 'error' }
 
@@ -171,6 +174,18 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       return { challenges, rolls }
     },
     surprises: async () => ({ surpriseIdeas: await must<SurpriseIdea[]>(supabase.from('surprise_ideas').select('*').order('created_at')) }),
+    // Le carnet ne bloque jamais l'app : sans lui (base pas encore migrée), il reste vide
+    visitors: async () => {
+      try {
+        const [visitorsFound, visitorBook] = await Promise.all([
+          must<VisitorFound[]>(supabase.from('visitor_found').select('id, profile_id, visitor_id, reward, found_at').order('found_at')),
+          must<VisitorBook>(supabase.rpc('visitor_book')),
+        ])
+        return { visitorsFound: visitorsFound || [], visitorBook }
+      } catch {
+        return { visitorsFound: [] as VisitorFound[], visitorBook: null }
+      }
+    },
   }), [userId])
 
   const reload: Store['reload'] = useCallback(async (what) => {
@@ -209,7 +224,7 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       const parts = await Promise.all([
         loaders.couple(), loaders.categories(), loaders.suggestions(), loaders.goals(),
         loaders.wishes(), loaders.messages(), loaders.force(), loaders.fish(), loaders.shop(), loaders.reviews(),
-        loaders.streaks(), loaders.challenges(), loaders.surprises(),
+        loaders.streaks(), loaders.challenges(), loaders.surprises(), loaders.visitors(),
       ])
       const tasks = await fetchTasks(range.current.from, range.current.to)
       const next = Object.assign({ ...EMPTY, loading: false, me, partner, tasks }, ...parts) as State
@@ -318,7 +333,7 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       timer = setTimeout(() => {
         const list = [...pending]
         pending.clear()
-        if (list.includes('tasks')) { reloadTasks(); pending.add('streaks') }
+        if (list.includes('tasks')) { reloadTasks(); pending.add('streaks'); pending.add('visitors') }
         const others = [...new Set([...list, ...pending])].filter((w) => w !== 'tasks') as Parameters<Store['reload']>[0]
         pending.clear()
         if (others.length) reload(others)
@@ -335,6 +350,7 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_reviews', filter: `couple_id=eq.${coupleId}` }, () => schedule('reviews'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'challenges', filter: `couple_id=eq.${coupleId}` }, () => schedule('challenges'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'challenge_rolls', filter: `couple_id=eq.${coupleId}` }, () => schedule('challenges'))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'visitor_found', filter: `couple_id=eq.${coupleId}` }, () => { schedule('visitors'); schedule('fish') })
       .subscribe()
     return () => { clearTimeout(timer); supabase.removeChannel(channel) }
   }, [coupleId, reload, reloadTasks])

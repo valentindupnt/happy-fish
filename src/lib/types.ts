@@ -16,6 +16,8 @@ export interface Profile {
   notify_checks: boolean
   notify_evening: boolean
   notify_weekly: boolean
+  /** Absent tant que la migration 007 n'est pas appliquée */
+  notify_visitors?: boolean
 }
 
 export interface Couple {

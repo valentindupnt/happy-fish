@@ -203,7 +203,7 @@ function Heart() {
 }
 
 // Petits sprites : un caractère par pixel, « . » = vide
-function Sprite({ rows, colors, width, label }: { rows: string[]; colors: Record<string, string>; width: number; label?: string }) {
+export function Sprite({ rows, colors, width, label }: { rows: string[]; colors: Record<string, string>; width: number; label?: string }) {
   const w = rows[0].length
   const h = rows.length
   return (
