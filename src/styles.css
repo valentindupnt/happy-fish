@@ -459,8 +459,7 @@ button.bowl { background: none; border: none; }
 .visitor-pass.in-bowls.pass-right { left: 54%; right: 6%; border-radius: 0 0 40% 40%; }
 .visitor-pass.pass-left { left: 0; right: 50%; overflow: hidden; }
 .visitor-pass.pass-right { left: 50%; right: 0; overflow: hidden; }
-.visitor-pass-inner { position: absolute; top: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; animation: visitorx 11s linear 1 both, visitorbob 2.4s ease-in-out infinite; }
-.visitor-pass-name { font-size: 10px; font-weight: 800; background: rgba(255, 255, 255, 0.85); border-radius: 6px; padding: 1px 5px; color: var(--ink); white-space: nowrap; }
+.visitor-pass-inner { position: absolute; top: 0; width: max-content; display: flex; flex-direction: column; align-items: center; gap: 2px; animation: visitorx 11s linear 1 both, visitorbob 2.4s ease-in-out infinite; }
 @keyframes visitorpass { 0% { opacity: 0; } 6% { opacity: 1; } 94% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes visitorx { from { left: -80px; } to { left: calc(100% + 10px); } }
 @keyframes visitorbob { 0%, 100% { top: 0; } 50% { top: 8px; } }

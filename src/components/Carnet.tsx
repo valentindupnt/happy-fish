@@ -176,7 +176,6 @@ export function VisitorPass({ tab, bowls }: { tab: CarnetTab; bowls: boolean }) 
     <div className={`visitor-pass pass-${pass.side}${bowls ? ' in-bowls' : ''}`} aria-hidden="true" key={pass.key} onAnimationEnd={() => setPass(null)}>
       <div className="visitor-pass-inner">
         <VisitorSprite id={pass.v.id} px={big ? 3.4 : 3} max={big ? 72 : 48} />
-        <span className="visitor-pass-name">{pass.v.name}</span>
       </div>
     </div>
   )
