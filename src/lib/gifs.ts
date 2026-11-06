@@ -1,4 +1,4 @@
-// Banque de GIFs des petits mots : fichiers dans public/gifs/<id>.gif (384 × 336, en boucle).
+// Banque de GIFs des petits mots : fichiers dans public/gifs/<id>.gif (pixel art 128 × 112, en boucle, agrandi à l’écran).
 // Le message garde seulement l'id dans « body » ; la base vérifie sa forme (migration 010).
 
 export interface GifDef { id: string; label: string }
@@ -47,6 +47,7 @@ const byId = new Map(GIFS.map((g) => [g.id, g]))
 /** Même règle que la base : lettres minuscules, chiffres et tirets */
 export const GIF_ID = /^[a-z0-9-]{1,40}$/
 
-export const gifSrc = (id: string) => `/gifs/${id}.gif`
+// « ?v=2 » : fichiers à leur taille d'origine (128 × 112, agrandis à l'écran), l'ancien cache du téléphone est ignoré
+export const gifSrc = (id: string) => `/gifs/${id}.gif?v=2`
 export const gifLabel = (id: string | null) => (id && byId.get(id)?.label) || 'GIF'
 export const isKnownGif = (id: string | null) => !!id && byId.has(id)

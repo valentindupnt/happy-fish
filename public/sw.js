@@ -1,5 +1,5 @@
 // Happy Fish : service worker (notifications et ouverture sans réseau)
-const SHELL = 'hf-shell-v2'
+const SHELL = 'hf-shell-v3'
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => {

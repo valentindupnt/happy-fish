@@ -39,6 +39,8 @@ interface Item {
 }
 
 const GROUP_GAP = 5 * 60 * 1000
+// Mots affichés à l'ouverture : assez pour lire, peu pour ouvrir vite
+const PAGE = 60
 const isWord = (i: Item) => i.kind === 'text' || i.kind === 'image' || i.kind === 'gif'
 const touch = typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches ?? false)
 
@@ -54,6 +56,9 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const atBottom = useRef(true)
+  // Fenêtre affichée : les PAGE derniers mots, puis on remonte par paquets (à partir du mot « startKey »)
+  const [startKey, setStartKey] = useState<string | null>(null)
+  const restoreFromBottom = useRef<number | null>(null)
   const previews = useRef<string[]>([])
   const openedAt = useRef(Date.now())
 
@@ -98,6 +103,26 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
   }, [messages, pending, userId])
 
 
+  const visible = useMemo(() => {
+    const i = startKey ? items.findIndex((x) => x.key === startKey) : -1
+    return i >= 0 ? items.slice(i) : items.slice(-PAGE)
+  }, [items, startKey])
+  const hidden = items.length - visible.length
+  const showMore = () => {
+    const el = listRef.current
+    if (!el || hidden <= 0 || restoreFromBottom.current !== null) return
+    restoreFromBottom.current = el.scrollHeight - el.scrollTop
+    setStartKey(items[Math.max(0, hidden - PAGE)].key)
+  }
+  // Après l'ajout des mots plus anciens, on garde sous les yeux ce qu'on lisait
+  useLayoutEffect(() => {
+    const el = listRef.current
+    if (el && restoreFromBottom.current !== null) {
+      el.scrollTop = el.scrollHeight - restoreFromBottom.current
+      restoreFromBottom.current = null
+    }
+  }, [visible.length])
+
   // Défilement : on reste collé en bas, sauf si on est remonté lire
   const toBottom = (smooth: boolean) => {
     const el = listRef.current
@@ -108,6 +133,10 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
     if (!el) return
     atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
     if (atBottom.current) setJump(false)
+    // Remonté lire : la fenêtre ne glisse plus quand un mot arrive (rien ne bouge sous les yeux)
+    else if (startKey === null && visible[0]) setStartKey(visible[0].key)
+    // Près du haut : on ajoute les mots précédents
+    if (el.scrollTop < 240 && hidden > 0) showMore()
   }
   useLayoutEffect(() => { toBottom(false) }, [])
   const last = items[items.length - 1]
@@ -262,7 +291,10 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
 
       <div className="chat-list" ref={listRef} onScroll={onScroll} aria-live="polite">
         {items.length === 0 && <div className="empty">Envoie le premier petit mot à {partnerName}.</div>}
-        <MessageList items={items} today={today} partnerName={partnerName} titles={titles} openedAt={openedAt.current} onView={setViewing} />
+        {hidden > 0 && (
+          <button type="button" className="btn small chat-more" onClick={showMore}>Voir les mots précédents</button>
+        )}
+        <MessageList items={visible} today={today} partnerName={partnerName} titles={titles} openedAt={openedAt.current} onView={setViewing} />
       </div>
 
       <div className="composer">
