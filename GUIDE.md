@@ -104,7 +104,7 @@ Personne ne peut modifier l'XP, une coche ou les données de l'autre en contourn
 | L'apparence, un écran | Le code, poussé sur `main` : Vercel redéploie en 1 à 2 minutes |
 | Une règle de la base | Un fichier de migration (voir ci-dessous) |
 
-**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql`, `006_progression.sql`, `007_visitors.sql`, `008_deco.sql`, `009_chat_photos.sql`, `010_gifs.sql`, `011_wheel.sql` et `012_quests.sql` sont déjà appliquées sur le projet `happy-fish`.
+**Ne jamais relancer `schema.sql`** une fois l'app utilisée : il efface toutes les données. Chaque évolution de la base arrive dans `supabase/migrations/` sous forme de fichier numéroté (`002_…sql`). On le colle dans le SQL Editor et on fait **Run**, une seule fois, dans l'ordre des numéros. La table `schema_migrations` garde la liste de ceux déjà appliqués. Les migrations `002_lot2.sql`, `003_push.sql`, `004_lot3.sql`, `005_widget.sql`, `006_progression.sql`, `007_visitors.sql`, `008_deco.sql`, `009_chat_photos.sql`, `010_gifs.sql`, `011_wheel.sql`, `012_quests.sql`, `013_transfer.sql` et `014_force_effects.sql` sont déjà appliquées sur le projet `happy-fish`.
 
 ### Le widget, côté coulisses
 - Le widget passe par l'app gratuite **Scriptable**. Dans Paramètres, **Installer le widget** donne les étapes et copie un script qui contient une clé personnelle.
