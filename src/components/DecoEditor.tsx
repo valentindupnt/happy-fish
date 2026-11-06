@@ -3,19 +3,23 @@ import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { COMMON_SLOTS, OWN_SLOTS, slotsOf } from '../lib/deco'
 import type { DecoPlace } from '../lib/deco'
+import type { ShopItem } from '../lib/types'
 import { DecoPreview } from './Deco'
+import { GiftSheet } from './Gifts'
 import { Sheet } from './ui'
 
 /** Poser les décorations de son aquarium (5 emplacements) ou de l'aquarium commun (4 par personne) */
 export function DecoEditor({ place, openShop }: { place: DecoPlace; openShop: () => void }) {
   const { me, partner, partnerName, shopItems, purchases, decoSlots, userId, fishOf, run, reload } = useStore()
   const [slot, setSlot] = useState<number | null>(null)
+  const [gift, setGift] = useState<ShopItem | null>(null)
   if (!me) return null
   const decos = shopItems.filter((i) => i.kind === 'deco')
   if (!decos.length) return null // base pas encore migrée
   const mine = slotsOf(decoSlots, userId, place)
   const theirs = slotsOf(decoSlots, partner?.id, place)
   const owned = new Set(purchases.filter((p) => p.profile_id === userId).map((p) => p.item_id))
+  const partnerOwned = new Set(purchases.filter((p) => p.profile_id === partner?.id).map((p) => p.item_id))
   const myItems = decos.filter((i) => owned.has(i.id)).sort((a, b) => a.position - b.position)
   const level = fishOf(userId).level
   const nameOf = (id: string) => decos.find((i) => i.id === id)?.name ?? ''
@@ -57,7 +61,7 @@ export function DecoEditor({ place, openShop }: { place: DecoPlace; openShop: ()
       )}
       <span className="small">
         {place === 'own'
-          ? 'Touche un emplacement pour poser ou changer un objet. Au grand aquarium, ta déco te suit.'
+          ? 'Touche un emplacement pour poser, changer ou offrir un objet. Au grand aquarium, ta déco te suit.'
           : 'Chacun pose jusqu’à 4 objets pris dans sa collection : ils quittent alors son propre aquarium.'}
       </span>
 
@@ -75,12 +79,17 @@ export function DecoEditor({ place, openShop }: { place: DecoPlace; openShop: ()
                   const tooHigh = level < it.min_level
                   const here = current === it.id
                   return (
-                    <button key={it.id} type="button" className={`shop-item pick${here ? ' equipped' : ''}${tooHigh ? ' locked' : ''}`} disabled={tooHigh}
-                      onClick={() => set(slot, it.id, `${it.name} posé`)}>
-                      <div className="preview"><DecoPreview id={it.id} /></div>
-                      <span className="name">{it.name}</span>
-                      <span className="small">{tooHigh ? `Niveau ${it.min_level}` : here ? 'Ici' : where(it.id)}</span>
-                    </button>
+                    <div key={it.id} className="stack" style={{ gap: 4 }}>
+                      <button type="button" className={`shop-item pick${here ? ' equipped' : ''}${tooHigh ? ' locked' : ''}`} disabled={tooHigh}
+                        onClick={() => set(slot, it.id, `${it.name} posé`)}>
+                        <div className="preview"><DecoPreview id={it.id} /></div>
+                        <span className="name">{it.name}</span>
+                        <span className="small">{tooHigh ? `Niveau ${it.min_level}` : here ? 'Ici' : where(it.id)}</span>
+                      </button>
+                      {partner && !partnerOwned.has(it.id) && (
+                        <button type="button" className="btn small ghost" onClick={() => { setSlot(null); setGift(it) }}>Offrir à {partnerName}</button>
+                      )}
+                    </div>
                   )
                 })}
               </div>
@@ -89,6 +98,7 @@ export function DecoEditor({ place, openShop }: { place: DecoPlace; openShop: ()
           </div>
         </Sheet>
       )}
+      {gift && <GiftSheet item={gift} owned onClose={() => setGift(null)} />}
     </section>
   )
 }
