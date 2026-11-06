@@ -72,6 +72,8 @@ export function FocusTimer({ focus, onClose }: { focus: FocusState; onClose: () 
   const [now, setNow] = useState(Date.now())
   const [finished, setFinished] = useState(false)
   const [confirmStop, setConfirmStop] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editVal, setEditVal] = useState('')
   const lock = useRef<{ release: () => Promise<void> } | null>(null)
   const task = tasks.find((t) => t.id === f.taskId)
   const goal = task ? goalOf(task.goal_id) : undefined
@@ -128,9 +130,17 @@ export function FocusTimer({ focus, onClose }: { focus: FocusState; onClose: () 
     if (paused) update({ ...f, endAt: Date.now() + f.left })
     else update({ ...f, endAt: null, left: Math.max(0, left) })
   }
-  const addFive = () => {
-    if (paused) update({ ...f, left: f.left + 300_000, total: f.total + 300_000 })
-    else update({ ...f, endAt: (f.endAt || Date.now()) + 300_000, total: f.total + 300_000 })
+  // Change la durée en cours de route : delta en ms (le temps restant ne descend pas sous 1 minute)
+  const adjust = (delta: number) => {
+    const cur = Math.max(0, left)
+    const d = Math.max(delta, 60_000 - cur)
+    if (paused) update({ ...f, left: f.left + d, total: Math.max(60_000, f.total + d) })
+    else update({ ...f, endAt: (f.endAt || Date.now()) + d, total: Math.max(60_000, f.total + d) })
+  }
+  const applyEdit = () => {
+    const m = Math.round(Number(editVal))
+    if (Number.isFinite(m) && m >= 1 && m <= 600) adjust(m * 60_000 - Math.max(0, left))
+    setEditing(false)
   }
   const stop = () => { saveFocus(null); onClose() }
 
@@ -151,6 +161,25 @@ export function FocusTimer({ focus, onClose }: { focus: FocusState; onClose: () 
         <span className="focus-title">{goal?.title || 'Concentration'}</span>
         <span className="focus-time" role="timer" aria-live="off">{finished ? 'Bravo !' : mmss(left)}</span>
         <div className="focus-bar"><div style={{ width: `${ratio * 100}%` }} /></div>
+        {!finished && editing && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', pointerEvents: 'auto' }}>
+            <input
+              className="input"
+              style={{ width: 90, textAlign: 'center' }}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={600}
+              autoFocus
+              aria-label="Minutes restantes"
+              value={editVal}
+              onChange={(e) => setEditVal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') applyEdit() }}
+            />
+            <span className="focus-hint">min restantes</span>
+            <button type="button" className="focus-btn primary" onClick={applyEdit}>OK</button>
+          </div>
+        )}
         <span className="focus-hint">
           {finished ? 'Sous-objectif coché, ton poisson est fier de toi.' : paused ? 'En pause' : 'Garde l’app ouverte, l’écran reste allumé.'}
         </span>
@@ -167,7 +196,9 @@ export function FocusTimer({ focus, onClose }: { focus: FocusState; onClose: () 
         ) : (
           <>
             <button type="button" className="focus-btn" onClick={() => setConfirmStop(true)}>Arrêter</button>
-            <button type="button" className="focus-btn" onClick={addFive}>+5 min</button>
+            <button type="button" className="focus-btn" aria-label="Retirer 5 minutes" onClick={() => adjust(-300_000)}>−5</button>
+            <button type="button" className="focus-btn" aria-label="Ajouter 5 minutes" onClick={() => adjust(300_000)}>+5</button>
+            <button type="button" className="focus-btn" onClick={() => { setEditVal(String(Math.max(1, Math.ceil(Math.max(0, left) / 60_000)))); setEditing((e) => !e) }}>Durée</button>
             <button type="button" className="focus-btn primary" onClick={togglePause}>{paused ? 'Reprendre' : 'Pause'}</button>
           </>
         )}
