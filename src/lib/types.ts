@@ -86,6 +86,7 @@ export interface Message {
   body: string | null
   task_id: string | null
   image_path?: string | null
+  effect?: string | null
   created_at: string
 }
 
@@ -93,6 +94,7 @@ export interface ForceMessage {
   id: string
   body: string
   position: number
+  effect?: string | null
 }
 
 export interface FishStatus {

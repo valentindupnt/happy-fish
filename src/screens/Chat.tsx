@@ -1,5 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
@@ -9,6 +9,8 @@ import { PHOTO_BUCKET, photoPath, photoRatio, preparePhoto, usePhotoUrls } from 
 import type { PreparedPhoto } from '../lib/photos'
 import { Fish } from '../components/Fish'
 import { GIF_SERIES, gifLabel, gifSrc, isKnownGif } from '../lib/gifs'
+import { BURST, EFFECTS, FX_BG, FX_CHIP_BG, FX_CHIP_FG, FX_FG, effectOf } from '../lib/effects'
+import type { EffectDef } from '../lib/effects'
 import { BubbleIcon, Icon, TreatIcon } from '../components/ui'
 
 // Un message envoyé s'affiche tout de suite, avant la réponse du serveur
@@ -23,6 +25,7 @@ interface Pending {
   createdAt: string
   preview?: string
   ratio?: number
+  effect?: string | null
 }
 
 interface Item {
@@ -35,6 +38,7 @@ interface Item {
   imagePath?: string | null
   preview?: string
   ratio?: number
+  effect?: string | null
   sending?: boolean
 }
 
@@ -52,6 +56,8 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
   const [viewing, setViewing] = useState<string | null>(null)
   const [jump, setJump] = useState(false)
   const [gifsOpen, setGifsOpen] = useState(false)
+  // Mot de force touché : une petite barre propose les effets avant l'envoi
+  const [picking, setPicking] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -92,12 +98,12 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
       const p = byReal.get(m.id)
       return {
         key: p?.tempId || m.id, mine: m.author_id === userId, kind: m.kind, body: m.body, taskId: m.task_id,
-        createdAt: m.created_at, imagePath: m.image_path, preview: p?.preview, ratio: m.image_path ? photoRatio(m.image_path) : undefined,
+        createdAt: m.created_at, imagePath: m.image_path, effect: m.effect, preview: p?.preview, ratio: m.image_path ? photoRatio(m.image_path) : undefined,
       }
     })
     for (const p of pending) {
       if (p.realId && known.has(p.realId)) continue
-      list.push({ key: p.tempId, mine: true, kind: p.kind, body: p.body, taskId: p.taskId, createdAt: p.createdAt, preview: p.preview, ratio: p.ratio, sending: !p.sent })
+      list.push({ key: p.tempId, mine: true, kind: p.kind, body: p.body, taskId: p.taskId, createdAt: p.createdAt, preview: p.preview, ratio: p.ratio, effect: p.effect, sending: !p.sent })
     }
     return list
   }, [messages, pending, userId])
@@ -193,17 +199,17 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
     return ok
   }
 
-  const sendText = async (raw: string) => {
+  const sendText = async (raw: string, effect: string | null = null) => {
     const body = raw.trim()
     if (!body || !couple) return
     const tempId = `tmp-${Date.now()}-${Math.random()}`
     const id = newMessageId()
     const taskId = refTaskId
-    addPending({ tempId, realId: id, kind: 'text', body, taskId, createdAt: new Date().toISOString() })
+    addPending({ tempId, realId: id, kind: 'text', body, taskId, effect, createdAt: new Date().toISOString() })
     setText('')
     clearRef()
     atBottom.current = true
-    const ok = await insertMessage(id, { kind: 'text', body, task_id: taskId })
+    const ok = await insertMessage(id, { kind: 'text', body, task_id: taskId, ...(effect ? { effect } : {}) })
     settle(tempId, ok)
     if (!ok) setText((t) => t || body)
   }
@@ -272,6 +278,8 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
 
   const canSend = Boolean(photo || text.trim())
   const showForce = force.length > 0 && !text && !photo && !gifsOpen
+  const pickedWord = showForce ? force.find((f) => f.id === picking) ?? null : null
+  const sendForce = (body: string, effect: string | null) => { setPicking(null); void sendText(body, effect) }
   // Garde le clavier ouvert quand on touche un bouton du champ
   const keep = { onMouseDown: (e: { preventDefault: () => void }) => e.preventDefault() }
 
@@ -319,8 +327,19 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
         {showForce && (
           <div className="force-row" aria-label="Messages de force">
             {force.map((f) => (
-              <button key={f.id} type="button" className="force-chip" {...keep} onClick={() => sendText(f.body)}>{f.body}</button>
+              <button key={f.id} type="button" className={`force-chip${picking === f.id ? ' on' : ''}`} aria-expanded={picking === f.id} {...keep} onClick={() => setPicking((p) => (p === f.id ? null : f.id))}>{f.body}</button>
             ))}
+          </div>
+        )}
+        {pickedWord && (
+          <div className="fx-bar" role="group" aria-label={`Effet pour « ${pickedWord.body} »`}>
+            <span className="fx-bar-title">Envoyer avec</span>
+            <div className="fx-bar-row">
+              {EFFECTS.map((e) => (
+                <button key={e.id} type="button" className={`fx-pick${pickedWord.effect === e.id ? ' usual' : ''}`} style={{ background: FX_CHIP_BG, color: FX_CHIP_FG }} {...keep} onClick={() => sendForce(pickedWord.body, e.id)}>{e.label}</button>
+              ))}
+              <button type="button" className="fx-pick plain" {...keep} onClick={() => sendForce(pickedWord.body, null)}>Sans effet</button>
+            </div>
           </div>
         )}
         {gifsOpen && (
@@ -387,6 +406,28 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
 }
 
 // La liste ne se redessine que si les messages changent : taper une lettre ne la touche pas
+/** Pluie de pixels autour d'un mot fort qui vient d'arriver (disparaît seule, une seule fois) */
+function Burst({ fx }: { fx: EffectDef }) {
+  return (
+    <span className="fx-burst" aria-hidden="true">
+      <span className="fx-shine" />
+      {BURST.map(([dx, dy], k) => (
+        <svg key={k} className="fx-spark" viewBox="0 0 7 6" shapeRendering="crispEdges"
+          style={{ '--dx': `${dx}px`, '--dy': `${dy}px`, animationDelay: `${(k % 3) * 0.05}s` } as CSSProperties}>
+          <Pixels shape={fx.shape} c={fx.colors[k % fx.colors.length]} />
+        </svg>
+      ))}
+    </span>
+  )
+}
+
+function Pixels({ shape, c }: { shape: EffectDef['shape']; c: string }) {
+  if (shape === 'heart') return <><rect x="1" y="0" width="2" height="1" fill={c} /><rect x="4" y="0" width="2" height="1" fill={c} /><rect x="0" y="1" width="7" height="2" fill={c} /><rect x="1" y="3" width="5" height="1" fill={c} /><rect x="2" y="4" width="3" height="1" fill={c} /><rect x="3" y="5" width="1" height="1" fill={c} /></>
+  if (shape === 'bubble') return <><rect x="2" y="0" width="3" height="1" fill={c} /><rect x="2" y="5" width="3" height="1" fill={c} /><rect x="1" y="1" width="1" height="4" fill={c} /><rect x="5" y="1" width="1" height="4" fill={c} /></>
+  if (shape === 'square') return <rect x="1" y="1" width="5" height="4" fill={c} />
+  return <><rect x="3" y="0" width="1" height="6" fill={c} /><rect x="0" y="2" width="7" height="2" fill={c} /><rect x="2" y="1" width="3" height="4" fill={c} /></>
+}
+
 const MessageList = memo(function MessageList({ items, today, partnerName, titles, openedAt, onView }: {
   items: Item[]
   today: string
@@ -411,12 +452,15 @@ const MessageList = memo(function MessageList({ items, today, partnerName, title
         const side = m.mine ? 'me' : 'them'
         const ref = m.taskId ? titles[m.taskId] || null : null
         const src = (m.imagePath && urls[m.imagePath]) || m.preview
+        const fx = m.kind === 'text' ? effectOf(m.effect) : null
+        const fresh = Date.parse(m.createdAt) > openedAt
         return (
           <div key={m.key} style={{ display: 'contents' }}>
             {sep && <p className="chat-day">{sep}</p>}
             {isWord(m) ? (
               <div className={`msg-row ${side}${first ? ' first' : ''}${Date.parse(m.createdAt) > openedAt ? ' fresh' : ''}`}>
-                <div className={`msg ${side}${first ? ' first' : ''}${lastOfGroup ? ' last' : ''}${m.kind === 'image' ? ' has-photo' : ''}${m.kind === 'gif' && isKnownGif(m.body) ? ' has-gif' : ''}${m.sending ? ' sending' : ''}`}>
+                <div className={`msg ${side}${first ? ' first' : ''}${lastOfGroup ? ' last' : ''}${m.kind === 'image' ? ' has-photo' : ''}${m.kind === 'gif' && isKnownGif(m.body) ? ' has-gif' : ''}${fx ? ' has-fx' : ''}${fx && fresh ? ' fx-in' : ''}${m.sending ? ' sending' : ''}`} style={fx ? { background: FX_BG, color: FX_FG } : undefined}>
+                  {fx && <span className="fx-label">Mot fort</span>}
                   {ref && <div className="ref">Sur {m.mine ? `l’objectif de ${partnerName}` : 'ton objectif'} : {ref}</div>}
                   {m.kind === 'image' && (
                     <button type="button" className="msg-photo" style={{ aspectRatio: String(m.ratio || 1), width: `min(240px, 62vw, ${Math.round(320 * (m.ratio || 1))}px)` }} onClick={() => src && onView(src)} aria-label="Voir la photo en grand">
@@ -430,6 +474,7 @@ const MessageList = memo(function MessageList({ items, today, partnerName, title
                   ) : (
                     m.body && <div className="msg-text">{m.body}</div>
                   )}
+                  {fx && fresh && <Burst fx={fx} />}
                 </div>
                 {lastOfGroup && <div className="msg-time">{m.sending ? 'Envoi…' : timeLabel(m.createdAt)}</div>}
               </div>

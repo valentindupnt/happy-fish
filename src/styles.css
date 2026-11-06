@@ -207,6 +207,24 @@ a { color: var(--blue-ink); }
 .msg.has-photo { padding: 3px; }
 .msg.has-photo .msg-text { padding: 5px 9px 4px; }
 .msg.has-photo .ref { margin: 4px 4px 6px; }
+.msg.has-fx { position: relative; overflow: visible; border: 2px solid var(--ink); box-shadow: 0 3px 0 var(--ink); }
+.fx-label { display: block; margin-bottom: 3px; font-family: var(--pixel); font-size: 7px; letter-spacing: 0.5px; color: #E9DEFF; }
+.msg.fx-in { animation: fx-pop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.fx-burst { position: absolute; inset: 0; pointer-events: none; }
+.fx-shine { position: absolute; top: 0; bottom: 0; left: 0; width: 26%; background: #fff; opacity: 0.45; overflow: hidden; animation: fx-shine 0.9s 0.3s ease-out both; }
+.fx-spark { position: absolute; left: 50%; top: 50%; width: 10px; height: 9px; margin: -4px 0 0 -5px; animation: fx-spark 0.9s ease-out both; }
+.force-chip.on { background: #7B4FD6; border-color: var(--ink); color: #fff; }
+.fx-bar { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: #EDE3FF; border: 2px solid var(--ink); border-radius: 14px; animation: msg-in 0.15s ease-out; }
+.fx-bar-title { font-family: var(--pixel); font-size: 8px; line-height: 1.4; color: #5A32B4; }
+.fx-bar-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.fx-pick { min-height: 36px; padding: 0 12px; border: 2px solid var(--ink); border-radius: 999px; box-shadow: 0 2px 0 var(--ink); font-size: 13px; font-weight: 800; }
+.fx-pick.usual { outline: 2px solid #7B4FD6; outline-offset: 2px; }
+.fx-pick.plain { background: var(--card); color: var(--ink); }
+.fx-pick:active { transform: translateY(2px); box-shadow: none; }
+@keyframes fx-pop { 0% { transform: scale(0.5) rotate(-4deg); opacity: 0; } 45% { transform: scale(1.14) rotate(2deg); opacity: 1; } 70% { transform: scale(0.97) rotate(-1deg); } 100% { transform: none; } }
+@keyframes fx-spark { 0% { transform: translate(0, 0) scale(0.3); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1.1); opacity: 0; } }
+@keyframes fx-shine { 0% { transform: translateX(-120%) skewX(-18deg); } 100% { transform: translateX(320%) skewX(-18deg); } }
+@media (prefers-reduced-motion: reduce) { .msg.fx-in, .fx-shine, .fx-spark { animation: none; } .fx-burst { display: none; } }
 .msg-photo { display: block; max-height: 320px; padding: 0; border: none; border-radius: 15px; overflow: hidden; background: var(--line); }
 .msg-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .msg.has-gif { padding: 3px; }

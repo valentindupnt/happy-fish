@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 
-export const SQL_FILES = ['../supabase/schema.sql', '../supabase/seed.sql', '../supabase/migrations/002_lot2.sql', '../supabase/migrations/004_lot3.sql', '../supabase/migrations/005_widget.sql', '../supabase/migrations/006_progression.sql', '../supabase/migrations/007_visitors.sql', '../supabase/migrations/008_deco.sql', '../supabase/migrations/009_chat_photos.sql', '../supabase/migrations/010_gifs.sql', '../supabase/migrations/011_wheel.sql', '../supabase/migrations/012_quests.sql', '../supabase/migrations/013_transfer.sql']
+export const SQL_FILES = ['../supabase/schema.sql', '../supabase/seed.sql', '../supabase/migrations/002_lot2.sql', '../supabase/migrations/004_lot3.sql', '../supabase/migrations/005_widget.sql', '../supabase/migrations/006_progression.sql', '../supabase/migrations/007_visitors.sql', '../supabase/migrations/008_deco.sql', '../supabase/migrations/009_chat_photos.sql', '../supabase/migrations/010_gifs.sql', '../supabase/migrations/011_wheel.sql', '../supabase/migrations/012_quests.sql', '../supabase/migrations/013_transfer.sql', '../supabase/migrations/014_force_effects.sql']
 
 const AUTH_STUB = `
   create schema if not exists auth;

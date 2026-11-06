@@ -5,6 +5,7 @@ import { stadeOf } from '../lib/xp'
 import type { FishColor, Profile } from '../lib/types'
 import { FREE_COLORS, Fish, PALETTES } from '../components/Fish'
 import { Icon, Switch } from '../components/ui'
+import { EFFECTS, FX_BG, FX_CHIP_BG, FX_CHIP_FG, FX_FG, effectOf } from '../lib/effects'
 import { disablePush, enablePush, pushState, sendTestPush } from '../lib/push'
 import type { PushState } from '../lib/push'
 import { widgetScript } from '../lib/widgetScript'
@@ -39,6 +40,12 @@ export function Settings({ onBack, openShop }: { onBack: () => void; openShop: (
       setNewForce('')
       await reload(['force'])
     }
+  }
+
+  // Mot dont on choisit l'effet (un seul ouvert à la fois)
+  const [openForce, setOpenForce] = useState<string | null>(null)
+  const setForceEffect = async (id: string, effect: string | null) => {
+    if (await run(() => supabase.from('force_messages').update({ effect }).eq('id', id))) await reload(['force'])
   }
 
   const removeForce = async (id: string) => {
@@ -103,15 +110,39 @@ export function Settings({ onBack, openShop }: { onBack: () => void; openShop: (
       <section aria-label="Messages de force" className="card pad stack">
         <div className="stack" style={{ gap: 4 }}>
           <h2 className="h2">Messages de force</h2>
-          <span className="small">Proposés en un tap dans Petits mots.</span>
+          <span className="small">Proposés dans Petits mots, rien que pour toi. Tu choisis l’effet avant chaque envoi ; touche un mot pour lui donner un effet habituel (facultatif).</span>
         </div>
         <ul className="list stack" style={{ gap: 8 }}>
-          {force.map((f) => (
-            <li key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 0 12px', minHeight: 44, background: 'var(--bg)', borderRadius: 10 }}>
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{f.body}</span>
-              <button type="button" className="btn small ghost" aria-label={`Supprimer ${f.body}`} onClick={() => removeForce(f.id)}><Icon name="close" size={18} /></button>
-            </li>
-          ))}
+          {force.map((f) => {
+            const fx = effectOf(f.effect)
+            const open = openForce === f.id
+            return (
+              <li key={f.id} style={{ background: 'var(--bg)', borderRadius: 10, outline: open ? '2px solid var(--ink)' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 0 12px', minHeight: 44 }}>
+                  <button type="button" aria-expanded={open} aria-label={`Effet habituel de ${f.body}`} onClick={() => setOpenForce(open ? null : f.id)}
+                    style={{ flex: 1, minWidth: 0, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: 0, border: 'none', background: 'none', textAlign: 'left', color: 'inherit', font: 'inherit' }}>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{f.body}</span>
+                    <span style={{ padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 800, background: fx ? FX_BG : 'var(--cream)', color: fx ? FX_FG : 'var(--cream-strong)' }}>{fx ? fx.label : 'Sans effet'}</span>
+                  </button>
+                  <button type="button" className="btn small ghost" aria-label={`Supprimer ${f.body}`} onClick={() => removeForce(f.id)}><Icon name="close" size={18} /></button>
+                </div>
+                {open && (
+                  <div role="group" aria-label={`Choisir l’effet habituel de ${f.body}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, padding: '0 10px 10px' }}>
+                    {EFFECTS.map((e) => (
+                      <button key={e.id} type="button" aria-pressed={f.effect === e.id} onClick={() => setForceEffect(f.id, e.id)}
+                        style={{ minHeight: 44, padding: '0 10px', border: '2px solid var(--ink)', borderRadius: 12, background: FX_CHIP_BG, color: FX_CHIP_FG, fontWeight: 800, fontSize: 13, boxShadow: f.effect === e.id ? `0 0 0 3px ${FX_BG}` : 'none' }}>
+                        {e.label}{f.effect === e.id ? ' · choisi' : ''}
+                      </button>
+                    ))}
+                    <button type="button" aria-pressed={!f.effect} onClick={() => setForceEffect(f.id, null)}
+                      style={{ gridColumn: '1 / span 2', minHeight: 44, padding: '0 10px', border: '2px solid var(--ink)', borderRadius: 12, background: 'var(--cream)', color: 'var(--cream-strong)', fontWeight: 800, fontSize: 13, boxShadow: !f.effect ? '0 0 0 3px var(--orange)' : 'none' }}>
+                      Sans effet{!f.effect ? ' · choisi' : ''}
+                    </button>
+                  </div>
+                )}
+              </li>
+            )
+          })}
         </ul>
         <div style={{ display: 'flex', gap: 8 }}>
           <label htmlFor="new-force" className="sr-only">Nouveau message de force</label>

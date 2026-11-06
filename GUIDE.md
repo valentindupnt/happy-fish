@@ -60,6 +60,8 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 
 **Photos (migration 009)** : rangées dans l'espace de stockage privé `chat-images` de Supabase (rubrique **Storage**), un dossier par duo que seuls ses deux membres peuvent lire. Chaque photo est réduite à 1 600 px avant l'envoi (environ 300 Ko), soit quelques milliers de photos dans le 1 Go de l'offre gratuite.
 
+**Mots forts (migration 014)** : les messages de force (Réglages, propres à chaque compte) se choisissent avec un effet juste avant l'envoi. Un tap sur un mot ouvre une petite barre « Envoyer avec » : Pop, Cœurs, Bulles, Confettis ou Sans effet, tout en violet, et le choix envoie le mot. Dans Réglages, un tap sur un mot permet de lui donner un effet habituel (facultatif), seulement repéré dans la barre. L'effet est gardé sur le petit mot : l'autre le voit arriver avec la même bulle violette, le repère « Mot fort » et la pluie de pixels (une fois, désactivée si le téléphone limite les animations). Un compte sans aucun mot reçoit Tu gères, Courage et Fier de toi, qu'il peut modifier ou supprimer. Fichiers : `src/lib/effects.ts`, `Chat.tsx`, `Settings.tsx`.
+
 **GIFs (migration 010)** : 22 GIFs pixel art rangés dans `public/gifs/` (16 memes et 6 « téléphone rose »), choisis depuis le bouton **GIF** de Petits mots. Le message garde seulement le nom du GIF, que la base vérifie. Les fichiers sont en pixel art à leur taille d'origine (128 × 112), agrandis net à l'écran : neuf fois moins de mémoire qu'en 384 × 336. Ils sont servis par Vercel et gardés sur le téléphone pour le mode hors ligne (adresse en `?v=2` pour ignorer l'ancien cache). Pour en ajouter un : déposer le fichier dans `public/gifs/` et l'inscrire dans `src/lib/gifs.ts`, sans migration.
 
 **Notifications (lot 2)** : petit mot, photo ou GIF reçus, bulle ou friandise, objectif coché par l'autre (désactivé par défaut), rappel du soir vers 20 h s'il reste des sous-objectifs, bilan du lundi vers 8 h, nouveau visiteur dans le carnet (chaque notification se coupe dans Paramètres).
@@ -147,7 +149,7 @@ npm run build                # vérification complète
 | `src/lib/gifs.ts`, `public/gifs/` | Catalogue des GIFs des petits mots et leurs fichiers (vérifiés par `tests/gifs.test.ts`) |
 | `src/components/Quests.tsx` | Quêtes annexes du jour, gestion de sa liste, Wall of fame |
 | `src/lib/messages.ts` | Fusion des rechargements de petits mots, nouvel essai réseau, identifiant choisi avant l’envoi |
-| `tests/` | 103 tests (`messages.test.ts` et `chat-id.test.ts` petits mots, `wheel.test.ts` roue, `quests.test.ts` quêtes, `gifs.test.ts` GIFs, `deco.test.ts` décorations, cadeaux, collections, `db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
+| `tests/` | 114 tests (`effects.test.ts` mots forts, `messages.test.ts` et `chat-id.test.ts` petits mots, `wheel.test.ts` roue, `quests.test.ts` quêtes, `gifs.test.ts` GIFs, `deco.test.ts` décorations, cadeaux, collections, `db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
 
 ## 7. Dépannage
 
