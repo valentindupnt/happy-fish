@@ -5,8 +5,12 @@ import type { ShopItem } from '../lib/types'
 import { ItemPreview } from './Fish'
 import { Coin, Sheet } from './ui'
 
-/** Offrir un objet à l'autre : payé avec ses pièces, avec un petit mot facultatif */
-export function GiftSheet({ item, onClose }: { item: ShopItem; onClose: () => void }) {
+/**
+ * Offrir un objet à l'autre, avec un petit mot facultatif.
+ * Par défaut il est payé avec ses pièces ; avec `owned`, c'est un objet de son inventaire :
+ * il quitte son poisson ou son aquarium et passe à l'autre, sans pièce échangée.
+ */
+export function GiftSheet({ item, owned = false, onClose }: { item: ShopItem; owned?: boolean; onClose: () => void }) {
   const { me, partnerName, fishOf, userId, run, reload } = useStore()
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -14,10 +18,13 @@ export function GiftSheet({ item, onClose }: { item: ShopItem; onClose: () => vo
   const coins = fishOf(userId).coins ?? 0
   const send = async () => {
     setBusy(true)
-    const ok = await run(() => supabase.rpc('gift_item', { p_item: item.id, p_message: msg.trim() || null }), `${item.name} offert à ${partnerName}`)
+    const call = owned
+      ? () => supabase.rpc('transfer_item', { p_item: item.id, p_message: msg.trim() || null })
+      : () => supabase.rpc('gift_item', { p_item: item.id, p_message: msg.trim() || null })
+    const ok = await run(call, `${item.name} offert à ${partnerName}`)
     setBusy(false)
     if (ok) {
-      await reload(['shop', 'fish', 'deco'])
+      await reload(['shop', 'fish', 'deco', 'profiles'])
       onClose()
     }
   }
@@ -29,6 +36,7 @@ export function GiftSheet({ item, onClose }: { item: ShopItem; onClose: () => vo
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span className="h2" style={{ fontSize: 16 }}>{item.name}</span>
             <span className="small">
+              {owned && 'Il quitte ton inventaire et passe à ton duo, sans pièce échangée. '}
               {item.min_level > 1 ? `À partir du niveau ${item.min_level} : s’il n’y est pas encore, le cadeau l’attend en réserve.` : 'Il arrive tout de suite chez lui ou elle.'}
             </span>
           </div>
@@ -37,10 +45,16 @@ export function GiftSheet({ item, onClose }: { item: ShopItem; onClose: () => vo
           <span className="small" style={{ fontWeight: 800 }}>Un petit mot (facultatif)</span>
           <textarea className="textarea" rows={2} maxLength={140} value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Pour toi, parce que…" />
         </label>
-        <button type="button" className="btn primary" disabled={busy || coins < item.price} onClick={send}>
-          Offrir pour <Coin size={12} /> {item.price}
-        </button>
-        {coins < item.price && <span className="small">Il te manque {item.price - coins} pièces.</span>}
+        {owned ? (
+          <button type="button" className="btn primary" disabled={busy} onClick={send}>Offrir {item.name}</button>
+        ) : (
+          <>
+            <button type="button" className="btn primary" disabled={busy || coins < item.price} onClick={send}>
+              Offrir pour <Coin size={12} /> {item.price}
+            </button>
+            {coins < item.price && <span className="small">Il te manque {item.price - coins} pièces.</span>}
+          </>
+        )}
       </div>
     </Sheet>
   )

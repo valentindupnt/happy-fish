@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { FREE_COLORS, ItemPreview, PALETTES } from '../components/Fish'
@@ -5,6 +6,7 @@ import type { FishColor, ItemKind, ShopItem } from '../lib/types'
 import { Bar, Coin, Icon } from '../components/ui'
 import { HABITATS } from '../lib/xp'
 import { DecoShop } from '../components/DecoShop'
+import { GiftSheet } from '../components/Gifts'
 
 const SECTIONS: Array<{ kind: ItemKind; title: string; hint?: string }> = [
   { kind: 'color', title: 'Couleurs' },
@@ -21,10 +23,12 @@ const COLUMN: Record<string, 'fish_color' | 'bowl_style' | 'fish_hat' | 'fish_pe
 
 export function Shop({ onBack }: { onBack: () => void }) {
   const { me, partner, partnerName, couple, shopItems, purchases, coupleItems, pot, userId, fishOf, run, reload } = useStore()
+  const [gift, setGift] = useState<ShopItem | null>(null)
   if (!me) return null
   const fish = fishOf(userId)
   const coins = fish.coins ?? 0
   const owned = new Set(purchases.filter((p) => p.profile_id === userId).map((p) => p.item_id))
+  const partnerOwned = new Set(purchases.filter((p) => p.profile_id === partner?.id).map((p) => p.item_id))
   const decorOwned = new Set(coupleItems.map((c) => c.item_id))
   const position = couple?.habitat ?? 0
   const current = HABITATS[position]
@@ -167,6 +171,9 @@ export function Shop({ onBack }: { onBack: () => void }) {
                     <div className="preview"><ItemPreview kind={it.kind} id={it.id} color={me.fish_color as FishColor} /></div>
                     <span className="name">{it.name}</span>
                     {button(it)}
+                    {partner && it.scope === 'perso' && (it.kind === 'hat' || it.kind === 'pet') && owned.has(it.id) && !partnerOwned.has(it.id) && (
+                      <button type="button" className="btn small ghost" onClick={() => setGift(it)}>Offrir</button>
+                    )}
                   </div>
                 )
               })}
@@ -174,6 +181,7 @@ export function Shop({ onBack }: { onBack: () => void }) {
           </section>
         )
       })}
+      {gift && <GiftSheet item={gift} owned onClose={() => setGift(null)} />}
     </div>
   )
 }

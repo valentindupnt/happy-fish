@@ -12,7 +12,7 @@ interface Group { key: string; title: string; hint?: string; items: ShopItem[]; 
 /** Le rayon des décorations perso : fonds marins, hors du commun, collections, objets de saison, vitrine */
 export function DecoShop() {
   const { me, partner, partnerName, shopItems, purchases, series, today, userId, fishOf, decoSlots, run, reload, toast } = useStore()
-  const [gift, setGift] = useState<ShopItem | null>(null)
+  const [gift, setGift] = useState<{ item: ShopItem; owned: boolean } | null>(null)
   if (!me) return null
   const items = shopItems.filter((i) => i.kind === 'deco').sort((a, b) => a.position - b.position)
   if (!items.length) return null
@@ -64,8 +64,8 @@ export function DecoShop() {
         {mine ? <button type="button" className="btn small" disabled>À toi</button>
           : tooHigh ? <button type="button" className="btn small" disabled>Niveau {it.min_level}</button>
             : <button type="button" className="btn small primary" disabled={coins < it.price} onClick={() => buy(it)}><Coin size={12} />{it.price}</button>}
-        {partner && !partnerOwned.has(it.id) && open(it) && (
-          <button type="button" className="btn small ghost" onClick={() => setGift(it)}>Offrir</button>
+        {partner && !partnerOwned.has(it.id) && (mine || open(it)) && (
+          <button type="button" className="btn small ghost" onClick={() => setGift({ item: it, owned: mine })}>Offrir</button>
         )}
       </div>
     )
@@ -103,13 +103,16 @@ export function DecoShop() {
                 <div className="preview"><DecoPreview id={it.id} /></div>
                 <span className="name">{it.name}</span>
                 <span className="small">Saison passée</span>
+                {partner && !partnerOwned.has(it.id) && (
+                  <button type="button" className="btn small ghost" onClick={() => setGift({ item: it, owned: true })}>Offrir</button>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
-      {gift && <GiftSheet item={gift} onClose={() => setGift(null)} />}
-      {partner && <span className="small">Offre un objet à {partnerName} : il lui arrive tout de suite, avec un petit mot si tu veux.</span>}
+      {gift && <GiftSheet item={gift.item} owned={gift.owned} onClose={() => setGift(null)} />}
+      {partner && <span className="small">Offre un objet à {partnerName}, acheté ou déjà à toi : il lui arrive tout de suite, avec un petit mot si tu veux.</span>}
     </section>
   )
 }
