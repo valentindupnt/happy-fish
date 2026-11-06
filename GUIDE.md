@@ -41,8 +41,8 @@ Pour un nouveau projet Supabase : dans le SQL Editor, coller le **contenu** de `
 |---|---|
 | **Aujourd'hui** | Le poisson et son humeur, le bilan de la semaine passée et les surprises, le récap du mois (les 5 premiers jours), les 7 jours de la semaine, mes sous-objectifs ou ceux de Julie, cocher (avec des bulles), reporter, quêtes annexes du jour, mes séries, compteur de ratés avec la bulle « Surprise » (roue) |
 | **Ma semaine** | Vue jour par jour, vue mois, préparation de la semaine, ajout sur un jour précis, semaine de Julie |
-| **Ensemble** | Défi de la semaine tiré au dé, Wall of fame (dernier snap de chacun, bouton « Toute la fame »), objectifs communs (XP pour les deux), envies avec notes et lien (liste déroulante) |
-| **Petits mots** | Chat en direct, photos (avec légende, en grand d'un tap), GIFs de poissons pixel (bouton GIF), bulles, friandises (+1 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif. La barre d'onglets se cache quand le clavier est ouvert |
+| **Ensemble** | Défi de la semaine tiré au dé, objectifs communs (XP pour les deux), Wall of fame en liste déroulante (dernier snap de chacun, bouton « Toute la fame »), envies avec notes et lien (liste déroulante) |
+| **Petits mots** | Chat en direct, photos (avec légende, en grand d'un tap), GIFs de poissons pixel (bouton GIF), bulles, friandises (+1 XP pour l'autre, 3 par jour), messages de force en un tap, encouragement sur un objectif. La barre d'onglets, les messages de force et le sous-titre se cachent quand le clavier est ouvert pour laisser de la place aux messages. Chaque mot est envoyé avec un identifiant choisi par l'app : si le réseau lâche, l'envoi est retenté une fois sans jamais créer de doublon. Les mots reçus ne disparaissent plus pendant un rechargement lent, et la liste se remet à jour toute seule si la connexion en direct a été coupée |
 | **Aquarium** | La scène de l'habitat en grand (bocaux, puis aquarium, récif, lagon), « Ensemble » ou gros plan sur un poisson, sa fiche avec la silhouette du prochain stade, les visiteurs qui passent, le carnet des visiteurs, le prochain habitat, le récap du mois |
 | **Boutique** | « Notre habitat » en tête (conditions, cagnotte, achat ensemble), couleurs, bocaux, habits et accessoires, familiers, décorations par habitat |
 | **Paramètres** | Surnom et couleur du poisson, surnoms, messages de force, notifications, widget de l'écran d'accueil, changement de mot de passe, déconnexion |
@@ -144,7 +144,8 @@ npm run build                # vérification complète
 | `src/lib/deco.ts` | Décorations : emplacements, saisons, groupes ; dessins dans `src/components/Deco.tsx`, éditeur `DecoEditor.tsx`, rayon `DecoShop.tsx`, cadeaux `Gifts.tsx` |
 | `src/lib/gifs.ts`, `public/gifs/` | Catalogue des GIFs des petits mots et leurs fichiers (vérifiés par `tests/gifs.test.ts`) |
 | `src/components/Quests.tsx` | Quêtes annexes du jour, gestion de sa liste, Wall of fame |
-| `tests/` | 95 tests (`wheel.test.ts` roue, `quests.test.ts` quêtes, `gifs.test.ts` GIFs, `deco.test.ts` décorations, cadeaux, collections, `db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
+| `src/lib/messages.ts` | Fusion des rechargements de petits mots, nouvel essai réseau, identifiant choisi avant l’envoi |
+| `tests/` | 102 tests (`messages.test.ts` et `chat-id.test.ts` petits mots, `wheel.test.ts` roue, `quests.test.ts` quêtes, `gifs.test.ts` GIFs, `deco.test.ts` décorations, cadeaux, collections, `db.test.ts` lot 1, `lot2.test.ts` lot 2, `lot3.test.ts` lot 3, `progression.test.ts` progression longue, `visitors.test.ts` carnet des visiteurs, `widget.test.ts` et `widgetScript.test.ts` pour le widget) |
 
 ## 7. Dépannage
 

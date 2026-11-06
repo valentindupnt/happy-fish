@@ -258,6 +258,9 @@ a { color: var(--blue-ink); }
 
 /* Clavier ouvert (classe posée par useKeyboard) : pas de barre d'onglets */
 .kb .tabs { display: none; }
+/* Clavier ouvert : la zone des messages devient très petite, on lui rend de la place */
+.kb .force-row, .kb .chat-sub { display: none; }
+.kb .chat-head { padding-bottom: 6px; }
 
 /* Bocaux */
 .bowl { width: 100%; max-width: 160px; aspect-ratio: 1 / 1.05; margin: 0 auto; position: relative; }

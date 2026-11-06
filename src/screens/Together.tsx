@@ -33,8 +33,6 @@ export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; o
 
       <Challenges />
 
-      <WallOfFame />
-
       <div className="row-between">
         <h2 className="h2">Objectifs communs</h2>
         <span className="meta">XP pour les deux</span>
@@ -47,6 +45,8 @@ export function Together({ openTask, openAdd }: { openTask: (t: Task) => void; o
       <button type="button" className="btn" onClick={() => openAdd({ day: today, common: true })}>
         <Icon name="plus" size={18} />Ajouter un objectif commun
       </button>
+
+      <WallOfFame />
 
       <div className="row-between" style={{ marginTop: 6, alignItems: 'center', gap: 8 }}>
         <button type="button" className="btn ghost" style={{ flex: 1, justifyContent: 'flex-start', padding: 0 }} aria-expanded={wishesOpen} aria-controls="wishes-list" onClick={() => setWishesOpen((o) => !o)}>

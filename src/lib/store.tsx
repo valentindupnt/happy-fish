@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { supabase, errorText } from './supabase'
 import { addDays, todayParis, weekStart } from './dates'
+import { mergeMessages } from './messages'
 import type { VisitorBook, VisitorFound } from './visitors'
 import type { DecoSlot, Gift, SeriesDef, SeriesFound } from './deco'
 import type { Category, Challenge, ChallengeRoll, Couple, CoupleItem, DailyQuest, FishStatus, ForceMessage, Goal, Message, Profile, Purchase, QuestTemplate, Review, ShopItem, Streak, Suggestion, SurpriseIdea, Task, Wish } from './types'
@@ -127,6 +128,8 @@ function applyQueue(tasks: Task[], ids: string[]): Task[] {
 
 export function StoreProvider({ userId, children }: { userId: string; children: ReactNode }) {
   const [state, setState] = useState<State>(() => readCache(userId) || EMPTY)
+  const stateRef = useRef(state)
+  stateRef.current = state
   const [online, setOnline] = useState(() => !isOffline())
   const [pendingChecks, setPendingChecks] = useState(() => readQueue(userId).length)
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -226,7 +229,12 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
   const reload: Store['reload'] = useCallback(async (what) => {
     try {
       const parts = await Promise.all(what.map((w) => loaders[w]()))
-      setState((s) => Object.assign({}, s, ...parts))
+      setState((s) => {
+        const next = Object.assign({}, s, ...parts) as State
+        // Fusion plutôt que remplacement : un rechargement en retard ne fait pas disparaître un mot reçu entre-temps
+        if (what.includes('messages')) next.messages = mergeMessages(s.messages, next.messages)
+        return next
+      })
     } catch (e) {
       toast(errorText(e), 'error')
     }
@@ -267,6 +275,8 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       // Les coches en attente restent visibles tant qu'elles ne sont pas envoyées
       const q = readQueue(userId)
       if (q.length) next.tasks = applyQueue(next.tasks, q)
+      // Les petits mots arrivés pendant ce rechargement (plus lent que les autres) sont gardés
+      next.messages = mergeMessages(stateRef.current.messages, next.messages)
       setState(next)
       writeCache(userId, next)
     } catch (e) {
@@ -362,6 +372,7 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
   useEffect(() => {
     if (!coupleId) return
     let timer: ReturnType<typeof setTimeout> | undefined
+    let subscribedOnce = false
     const pending = new Set<string>()
     const schedule = (what: string) => {
       pending.add(what)
@@ -391,7 +402,14 @@ export function StoreProvider({ userId, children }: { userId: string; children: 
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gifts', filter: `couple_id=eq.${coupleId}` }, () => { schedule('deco'); schedule('shop'); schedule('fish') })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'series_found' }, () => { schedule('deco'); schedule('fish') })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_quests', filter: `couple_id=eq.${coupleId}` }, () => { schedule('quests'); schedule('fish') })
-      .subscribe()
+      .subscribe((status) => {
+        // Connexion en direct coupée puis rétablie (réseau instable, iPhone en veille) : les mots reçus
+        // pendant la coupure n'arrivent jamais en direct, on les rattrape.
+        if (status === 'SUBSCRIBED') {
+          if (subscribedOnce) { schedule('messages'); schedule('tasks'); schedule('fish'); schedule('quests') }
+          subscribedOnce = true
+        }
+      })
     return () => { clearTimeout(timer); supabase.removeChannel(channel) }
   }, [coupleId, reload, reloadTasks])
 

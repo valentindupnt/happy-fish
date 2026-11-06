@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { dateOfTimestamp, longDay, timeLabel } from '../lib/dates'
+import { isNetworkError, newMessageId } from '../lib/messages'
 import { PHOTO_BUCKET, photoPath, photoRatio, preparePhoto, usePhotoUrls } from '../lib/photos'
 import type { PreparedPhoto } from '../lib/photos'
 import { Fish } from '../components/Fish'
@@ -13,7 +14,9 @@ import { BubbleIcon, Icon, TreatIcon } from '../components/ui'
 // Un message envoyé s'affiche tout de suite, avant la réponse du serveur
 interface Pending {
   tempId: string
-  realId?: string
+  /** Identifiant choisi avant l'envoi : le mot est reconnu dès qu'il arrive de la base */
+  realId: string
+  sent?: boolean
   kind: 'text' | 'image' | 'gif'
   body: string | null
   taskId: string | null
@@ -87,7 +90,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
     })
     for (const p of pending) {
       if (p.realId && known.has(p.realId)) continue
-      list.push({ key: p.tempId, mine: true, kind: p.kind, body: p.body, taskId: p.taskId, createdAt: p.createdAt, preview: p.preview, ratio: p.ratio, sending: !p.realId })
+      list.push({ key: p.tempId, mine: true, kind: p.kind, body: p.body, taskId: p.taskId, createdAt: p.createdAt, preview: p.preview, ratio: p.ratio, sending: !p.sent })
     }
     return list
   }, [messages, pending, userId])
@@ -109,10 +112,23 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
   const last = items[items.length - 1]
   useLayoutEffect(() => {
     if (!last) return
-    if (atBottom.current || last.mine) toBottom(true)
-    else setJump(true)
+    if (atBottom.current || last.mine) {
+      toBottom(true)
+      // Un défilement animé peut être interrompu par un changement de taille (clavier, champ qui rétrécit) :
+      // on vérifie à la fin qu'on est bien arrivé en bas.
+      const t = window.setTimeout(() => { if (atBottom.current) toBottom(false) }, 450)
+      return () => window.clearTimeout(t)
+    }
+    setJump(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [last?.key])
+  // Filet de sécurité : la connexion en direct peut se couper sans prévenir, on revérifie les mots toutes les 25 s
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (document.visibilityState === 'visible' && navigator.onLine !== false) void reload(['messages'])
+    }, 25000)
+    return () => window.clearInterval(id)
+  }, [reload])
   // Le clavier qui s'ouvre réduit la liste : on garde le dernier message visible
   useEffect(() => {
     const el = listRef.current
@@ -123,36 +139,43 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
   }, [])
 
   const addPending = (p: Pending) => setPending((ps) => [...ps, p])
-  const settle = (tempId: string, realId: string | undefined) => {
-    if (realId) {
-      setPending((ps) => ps.map((x) => (x.tempId === tempId ? { ...x, realId } : x)))
+  const settle = (tempId: string, ok: boolean) => {
+    if (ok) {
+      setPending((ps) => ps.map((x) => (x.tempId === tempId ? { ...x, sent: true } : x)))
       reload(['messages'])
     } else {
       setPending((ps) => ps.filter((x) => x.tempId !== tempId))
     }
   }
-  const insertMessage = async (row: Record<string, unknown>) => {
-    let id: string | undefined
+  // L'identifiant est choisi ici : si la réponse se perd (réseau instable), une seconde tentative ne crée pas de doublon
+  const insertMessage = async (id: string, row: Record<string, unknown>) => {
+    const payload = { id, couple_id: couple?.id, author_id: userId, ...row }
     const ok = await run(async () => {
-      const res = await supabase.from('messages').insert({ couple_id: couple?.id, author_id: userId, ...row }).select('id').single()
-      id = (res.data as { id: string } | null)?.id
-      return res
+      let { error } = await supabase.from('messages').insert(payload)
+      if (error && isNetworkError(error)) {
+        await new Promise((r) => window.setTimeout(r, 900))
+        ;({ error } = await supabase.from('messages').insert(payload))
+      }
+      // Déjà enregistré par la première tentative : c'est un succès
+      if (error && (error as { code?: string }).code === '23505') return { error: null }
+      return { error }
     })
-    return ok ? id : undefined
+    return ok
   }
 
   const sendText = async (raw: string) => {
     const body = raw.trim()
     if (!body || !couple) return
     const tempId = `tmp-${Date.now()}-${Math.random()}`
+    const id = newMessageId()
     const taskId = refTaskId
-    addPending({ tempId, kind: 'text', body, taskId, createdAt: new Date().toISOString() })
+    addPending({ tempId, realId: id, kind: 'text', body, taskId, createdAt: new Date().toISOString() })
     setText('')
     clearRef()
     atBottom.current = true
-    const id = await insertMessage({ kind: 'text', body, task_id: taskId })
-    settle(tempId, id)
-    if (!id) setText((t) => t || body)
+    const ok = await insertMessage(id, { kind: 'text', body, task_id: taskId })
+    settle(tempId, ok)
+    if (!ok) setText((t) => t || body)
   }
 
   const sendPhoto = async () => {
@@ -161,24 +184,25 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
     const caption = text.trim() || null
     const path = photoPath(couple.id, ph.width, ph.height)
     const tempId = `tmp-${Date.now()}-${Math.random()}`
-    addPending({ tempId, kind: 'image', body: caption, taskId: null, createdAt: new Date().toISOString(), preview: ph.preview, ratio: ph.width / ph.height })
+    const id = newMessageId()
+    addPending({ tempId, realId: id, kind: 'image', body: caption, taskId: null, createdAt: new Date().toISOString(), preview: ph.preview, ratio: ph.width / ph.height })
     setPhoto(null)
     setText('')
     atBottom.current = true
     const uploaded = await run(() => supabase.storage.from(PHOTO_BUCKET).upload(path, ph.blob, { contentType: 'image/jpeg', cacheControl: '31536000' }))
-    const id = uploaded ? await insertMessage({ kind: 'image', image_path: path, body: caption }) : undefined
-    settle(tempId, id)
-    if (!id) { setPhoto(ph); setText((t) => t || caption || '') }
+    const ok = uploaded ? await insertMessage(id, { kind: 'image', image_path: path, body: caption }) : false
+    settle(tempId, ok)
+    if (!ok) { setPhoto(ph); setText((t) => t || caption || '') }
   }
 
-  const sendGif = async (id: string) => {
+  const sendGif = async (gifId: string) => {
     if (!couple) return
     const tempId = `tmp-${Date.now()}-${Math.random()}`
-    addPending({ tempId, kind: 'gif', body: id, taskId: null, createdAt: new Date().toISOString() })
+    const id = newMessageId()
+    addPending({ tempId, realId: id, kind: 'gif', body: gifId, taskId: null, createdAt: new Date().toISOString() })
     setGifsOpen(false)
     atBottom.current = true
-    const gid = await insertMessage({ kind: 'gif', body: id })
-    settle(tempId, gid)
+    settle(tempId, await insertMessage(id, { kind: 'gif', body: gifId }))
   }
 
   const toggleGifs = () => {

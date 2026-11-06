@@ -53,37 +53,31 @@ export function QuestsCard() {
   }
 
   return (
-    <section aria-label="Quêtes annexes" className="card pad stack" style={{ gap: 10, borderStyle: 'dashed' }}>
+    <section aria-label="Quêtes annexes" className="card pad stack" style={{ gap: 2, borderStyle: 'dashed', padding: '10px 14px' }}>
       <div className="row-between" style={{ alignItems: 'center' }}>
         <h2 className="h2">Quêtes annexes</h2>
-        <button type="button" className="btn small ghost" onClick={() => setManaging(true)}>Gérer mes quêtes</button>
+        <button type="button" className="btn small ghost" style={{ minHeight: 28 }} onClick={() => setManaging(true)}>Gérer</button>
       </div>
-      <span className="small">Facultatif : un snap pour valider, des pièces en plus.</span>
+      <span className="small" style={{ marginBottom: 2 }}>Facultatif · un snap valide{list.some((q) => q.done_at) ? ` · ${kept}/${KEEP_MAX} gardées` : ''}</span>
 
-      {list.length === 0 && <div className="card empty">Pas de quête aujourd’hui. Ajoutes-en dans « Gérer mes quêtes ».</div>}
+      {list.length === 0 && <div className="card empty">Pas de quête aujourd’hui. Ajoutes-en avec « Gérer ».</div>}
 
       {list.map((q) => {
         const streak = q.done_at ? q.streak : q.streak_base
         return (
-          <div key={q.id} className="stack" style={{ gap: 6, padding: '8px 0', borderTop: '1px dashed var(--line)' }}>
-            <div className="row-between" style={{ alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, minWidth: 0, textDecoration: q.done_at ? 'line-through' : 'none' }}>{q.title}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                {streak > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 800 }}><Flame size={14} />{streak}</span>}
-                <span className="pill" aria-label={`${coinsOf(q.hard)} pièces`}><Coin /><span>{coinsOf(q.hard)}</span></span>
-              </span>
-            </div>
+          <div key={q.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderTop: '1px dashed var(--line)' }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, lineHeight: 1.25, textDecoration: q.done_at ? 'line-through' : 'none', color: q.done_at ? 'var(--muted)' : undefined }}>{q.title}</span>
+            {streak > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 800, flexShrink: 0 }}><Flame size={13} />{streak}</span>}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 800, flexShrink: 0 }} aria-label={`${coinsOf(q.hard)} pièces`}><Coin size={13} />{coinsOf(q.hard)}</span>
             {q.done_at ? (
-              <div className="row-between" style={{ alignItems: 'center', gap: 8 }}>
-                <span className="small" style={{ color: 'var(--green-ink)', fontWeight: 800 }}>Fait, snap ajouté au Wall of fame</span>
-                <button type="button" className={`btn small${q.kept ? ' primary' : ''}`} aria-pressed={q.kept} onClick={() => toggleKeep(q)}>
-                  {q.kept ? 'Gardée pour demain' : `Garder pour demain (${kept}/${KEEP_MAX})`}
-                </button>
-              </div>
+              <button type="button" className={`btn small${q.kept ? ' primary' : ''}`} style={{ flexShrink: 0, minWidth: 68 }} aria-pressed={q.kept}
+                aria-label={q.kept ? 'Gardée pour demain, appuyer pour retirer' : 'Garder pour demain'} onClick={() => toggleKeep(q)}>
+                {q.kept ? 'Gardée' : 'Garder'}
+              </button>
             ) : (
-              <div><button type="button" className="btn small primary" disabled={busy !== null} onClick={() => ask(q)}>
-                <Icon name="photo" size={16} />{busy === q.id ? 'Envoi…' : 'Valider avec un snap'}
-              </button></div>
+              <button type="button" className="btn small primary" style={{ flexShrink: 0, minWidth: 68 }} disabled={busy !== null} aria-label={`Valider avec un snap : ${q.title}`} onClick={() => ask(q)}>
+                <Icon name="photo" size={16} />{busy === q.id ? '…' : 'Snap'}
+              </button>
             )}
           </div>
         )
@@ -158,10 +152,27 @@ function Snap({ url, ratio }: { url: string | undefined; ratio: string }) {
   )
 }
 
-/** Encart d'Ensemble : le dernier snap de chacun, et la porte vers tous les snaps */
+/** Wall of fame dans Ensemble : liste déroulante, le dernier snap de chacun et la porte vers tous les snaps */
 export function WallOfFame() {
-  const { dailyQuests, userId, partner, me, partnerName } = useStore()
+  const { dailyQuests } = useStore()
   const [open, setOpen] = useState(false)
+  const count = dailyQuests.filter((q) => q.done_at && q.photo_path).length
+  return (
+    <>
+      <div className="row-between" style={{ marginTop: 6, alignItems: 'center', gap: 8 }}>
+        <button type="button" className="btn ghost" style={{ flex: 1, justifyContent: 'flex-start', padding: 0 }} aria-expanded={open} aria-controls="wall-of-fame" onClick={() => setOpen((o) => !o)}>
+          <h2 className="h2" style={{ margin: 0 }}>Wall of fame{count ? ` (${count})` : ''}</h2>
+          <Icon name={open ? 'up' : 'down'} size={18} />
+        </button>
+      </div>
+      {open && <FameBody />}
+    </>
+  )
+}
+
+function FameBody() {
+  const { dailyQuests, userId, partner, me, partnerName } = useStore()
+  const [all, setAll] = useState(false)
   const done = dailyQuests.filter((q) => q.done_at && q.photo_path).sort((a, b) => (b.done_at || '').localeCompare(a.done_at || ''))
   const lastOf = (id: string | undefined) => done.find((q) => q.profile_id === id)
   const mineLast = lastOf(userId)
@@ -178,17 +189,13 @@ export function WallOfFame() {
   )
 
   return (
-    <section aria-label="Wall of fame" className="card pad stack" style={{ gap: 10 }}>
-      <div className="row-between" style={{ alignItems: 'center' }}>
-        <h2 className="h2">Wall of fame</h2>
-        <span className="small">{done.length} snap{done.length > 1 ? 's' : ''}</span>
-      </div>
+    <section id="wall-of-fame" aria-label="Wall of fame" className="card pad stack" style={{ gap: 10 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
         {tile(me?.display_name || 'Moi', mineLast)}
         {tile(partnerName, theirLast)}
       </div>
-      <button type="button" className="btn block" onClick={() => setOpen(true)}>Toute la fame</button>
-      {open && <FameSheet done={done} onClose={() => setOpen(false)} />}
+      <button type="button" className="btn block" onClick={() => setAll(true)}>Toute la fame</button>
+      {all && <FameSheet done={done} onClose={() => setAll(false)} />}
     </section>
   )
 }
