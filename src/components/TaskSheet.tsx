@@ -17,6 +17,7 @@ export function TaskSheet({ task, onClose, onEncourage, onFocus }: { task: Task;
   const [taskNote, setTaskNote] = useState(task.note || '')
   const [goalNote, setGoalNote] = useState(goal?.note || '')
   const [title, setTitle] = useState(goal?.title || '')
+  const [minutes, setMinutes] = useState(String(goal?.minutes ?? 15))
   const [date, setDate] = useState(task.date < today ? today : task.date)
   const [confirmStop, setConfirmStop] = useState(false)
   if (!goal) return null
@@ -26,13 +27,17 @@ export function TaskSheet({ task, onClose, onEncourage, onFocus }: { task: Task;
   const cat = categoryOf(goal.category_id)
   const owner = task.owner_id === null ? 'Objectif commun' : task.owner_id === userId ? 'Mon objectif' : `Objectif de ${nameOf(task.owner_id)}`
 
+  const minutesOk = Number.isFinite(Math.round(Number(minutes))) && Math.round(Number(minutes)) >= 1 && Math.round(Number(minutes)) <= 600
+
   const save = async () => {
     const jobs: Array<Promise<boolean>> = []
     if (taskNote !== (task.note || '')) {
       jobs.push(run(() => supabase.from('tasks').update({ note: taskNote.trim() || null }).eq('id', task.id)))
     }
-    if (title.trim() && (title !== goal.title || goalNote !== (goal.note || ''))) {
-      jobs.push(run(() => supabase.from('goals').update({ title: title.trim(), note: goalNote.trim() || null }).eq('id', goal.id)))
+    const min = Math.round(Number(minutes))
+    if (!minutesOk) return
+    if (title.trim() && (title !== goal.title || goalNote !== (goal.note || '') || min !== goal.minutes)) {
+      jobs.push(run(() => supabase.from('goals').update({ title: title.trim(), note: goalNote.trim() || null, minutes: min }).eq('id', goal.id)))
     }
     const results = await Promise.all(jobs)
     if (results.every(Boolean)) {
@@ -92,6 +97,14 @@ export function TaskSheet({ task, onClose, onEncourage, onFocus }: { task: Task;
             <input id="goal-title-edit" className="input" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="field">
+            <label htmlFor="goal-minutes-edit">Durée (minutes)</label>
+            <input id="goal-minutes-edit" className="input" type="number" inputMode="numeric" min={1} max={600} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+            <span className="small">
+              {Number(minutes) >= 1 && Number(minutes) <= 600 ? `+${xpForMinutes(Math.round(Number(minutes)))} XP${done ? ' : l’XP déjà gagnée ne change pas.' : ''}` : 'Entre 1 et 600 minutes'}
+              {goal.recurring ? ' Vaut pour tous les jours de cet objectif.' : ''}
+            </span>
+          </div>
+          <div className="field">
             <label htmlFor="goal-note-edit">Note de l’objectif</label>
             <textarea id="goal-note-edit" className="textarea" value={goalNote} maxLength={1000} onChange={(e) => setGoalNote(e.target.value)} />
           </div>
@@ -99,7 +112,7 @@ export function TaskSheet({ task, onClose, onEncourage, onFocus }: { task: Task;
             <label htmlFor="task-note-edit">Note pour ce jour</label>
             <textarea id="task-note-edit" className="textarea" value={taskNote} maxLength={1000} onChange={(e) => setTaskNote(e.target.value)} />
           </div>
-          <button type="button" className="btn primary block" onClick={save}>Enregistrer</button>
+          <button type="button" className="btn primary block" disabled={!minutesOk} onClick={save}>Enregistrer</button>
 
           {!done && (
             <div className="wrap">
