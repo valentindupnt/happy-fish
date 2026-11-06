@@ -10,9 +10,16 @@ export function mergeMessages(prev: Message[], next: Message[]): Message[] {
   const byId = new Map<string, Message>()
   for (const m of prev) byId.set(m.id, m)
   for (const m of next) byId.set(m.id, m)
-  return [...byId.values()]
+  const out = [...byId.values()]
     .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
     .slice(-KEEP)
+  // Rien de neuf (cas du rechargement de contrôle) : on rend la liste d'avant, l'écran n'a rien à redessiner
+  if (out.length === prev.length && out.every((m, i) => m === prev[i] || same(m, prev[i]))) return prev
+  return out
+}
+
+function same(a: Message, b: Message): boolean {
+  return a.id === b.id && a.body === b.body && a.kind === b.kind && a.created_at === b.created_at && a.image_path === b.image_path && a.task_id === b.task_id
 }
 
 /** Réseau coupé ou instable (typique au retour dans l'app) : une nouvelle tentative a des chances de réussir */

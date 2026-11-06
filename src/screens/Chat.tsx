@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
@@ -70,11 +70,13 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
 
   const treatsLeft = Math.max(0, 3 - messages.filter((m) => m.author_id === userId && m.kind === 'treat' && dateOfTimestamp(m.created_at) === today).length)
   const refTask = refTaskId ? tasks.find((t) => t.id === refTaskId) : null
-  const refTitle = (taskId: string | null) => {
-    if (!taskId) return null
-    const t = tasks.find((x) => x.id === taskId)
-    return t ? goalOf(t.goal_id)?.title || null : null
-  }
+  // Titres des objectifs cités, calculés une fois (et non à chaque lettre tapée)
+  const titles = useMemo(() => {
+    const ids = new Set(messages.map((m) => m.task_id).filter(Boolean) as string[])
+    const map: Record<string, string> = {}
+    for (const t of tasks) if (ids.has(t.id)) { const g = goalOf(t.goal_id); if (g) map[t.id] = g.title }
+    return map
+  }, [messages, tasks, goalOf])
   const doneToday = tasks.filter((t) => t.date === today && t.done_at && (t.owner_id === partner?.id || t.owner_id === null)).length
 
   // Messages de la base, puis ceux encore en route
@@ -95,7 +97,6 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
     return list
   }, [messages, pending, userId])
 
-  const urls = usePhotoUrls(useMemo(() => items.filter((i) => i.imagePath).map((i) => i.imagePath as string), [items]))
 
   // Défilement : on reste collé en bas, sauf si on est remonté lire
   const toBottom = (smooth: boolean) => {
@@ -261,49 +262,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
 
       <div className="chat-list" ref={listRef} onScroll={onScroll} aria-live="polite">
         {items.length === 0 && <div className="empty">Envoie le premier petit mot à {partnerName}.</div>}
-        {items.map((m, i) => {
-          const prev = items[i - 1]
-          const next = items[i + 1]
-          const day = dateOfTimestamp(m.createdAt)
-          const sep = !prev || dateOfTimestamp(prev.createdAt) !== day ? (day === today ? 'Aujourd’hui' : longDay(day)) : null
-          const same = (o: Item | undefined) =>
-            !!o && isWord(o) && o.mine === m.mine && dateOfTimestamp(o.createdAt) === day &&
-            Math.abs(Date.parse(o.createdAt) - Date.parse(m.createdAt)) < GROUP_GAP
-          const first = !same(prev) || !!sep
-          const lastOfGroup = !same(next) || (!!next && dateOfTimestamp(next.createdAt) !== day)
-          const side = m.mine ? 'me' : 'them'
-          const ref = refTitle(m.taskId)
-          const src = (m.imagePath && urls[m.imagePath]) || m.preview
-          return (
-            <div key={m.key} style={{ display: 'contents' }}>
-              {sep && <p className="chat-day">{sep}</p>}
-              {isWord(m) ? (
-                <div className={`msg-row ${side}${first ? ' first' : ''}${Date.parse(m.createdAt) > openedAt.current ? ' fresh' : ''}`}>
-                  <div className={`msg ${side}${first ? ' first' : ''}${lastOfGroup ? ' last' : ''}${m.kind === 'image' ? ' has-photo' : ''}${m.kind === 'gif' && isKnownGif(m.body) ? ' has-gif' : ''}${m.sending ? ' sending' : ''}`}>
-                    {ref && <div className="ref">Sur {m.mine ? `l’objectif de ${partnerName}` : 'ton objectif'} : {ref}</div>}
-                    {m.kind === 'image' && (
-                      <button type="button" className="msg-photo" style={{ aspectRatio: String(m.ratio || 1), width: `min(240px, 62vw, ${Math.round(320 * (m.ratio || 1))}px)` }} onClick={() => src && setViewing(src)} aria-label="Voir la photo en grand">
-                        {src && <img src={src} alt="" loading="lazy" decoding="async" />}
-                      </button>
-                    )}
-                    {m.kind === 'gif' && isKnownGif(m.body) ? (
-                      <img className="msg-gif" src={gifSrc(m.body as string)} alt={gifLabel(m.body)} width={384} height={336} loading="lazy" decoding="async" />
-                    ) : m.kind === 'gif' ? (
-                      <div className="msg-text">GIF</div>
-                    ) : (
-                      m.body && <div className="msg-text">{m.body}</div>
-                    )}
-                  </div>
-                  {lastOfGroup && <div className="msg-time">{m.sending ? 'Envoi…' : timeLabel(m.createdAt)}</div>}
-                </div>
-              ) : m.kind === 'treat' ? (
-                <div className="gesture treat"><TreatIcon size={14} />{m.mine ? `Friandise envoyée à ${partnerName}` : `${partnerName} t’a envoyé une friandise`}</div>
-              ) : (
-                <div className="gesture bubble"><BubbleIcon size={14} />{m.mine ? `Bulle envoyée à ${partnerName}` : `${partnerName} t’a envoyé une bulle`}</div>
-              )}
-            </div>
-          )
-        })}
+        <MessageList items={items} today={today} partnerName={partnerName} titles={titles} openedAt={openedAt.current} onView={setViewing} />
       </div>
 
       <div className="composer">
@@ -394,3 +353,62 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
     </div>
   )
 }
+
+// La liste ne se redessine que si les messages changent : taper une lettre ne la touche pas
+const MessageList = memo(function MessageList({ items, today, partnerName, titles, openedAt, onView }: {
+  items: Item[]
+  today: string
+  partnerName: string
+  titles: Record<string, string>
+  openedAt: number
+  onView: (src: string) => void
+}) {
+  const urls = usePhotoUrls(useMemo(() => items.filter((i) => i.imagePath).map((i) => i.imagePath as string), [items]))
+  return (
+    <>
+      {items.map((m, i) => {
+        const prev = items[i - 1]
+        const next = items[i + 1]
+        const day = dateOfTimestamp(m.createdAt)
+        const sep = !prev || dateOfTimestamp(prev.createdAt) !== day ? (day === today ? 'Aujourd’hui' : longDay(day)) : null
+        const same = (o: Item | undefined) =>
+          !!o && isWord(o) && o.mine === m.mine && dateOfTimestamp(o.createdAt) === day &&
+          Math.abs(Date.parse(o.createdAt) - Date.parse(m.createdAt)) < GROUP_GAP
+        const first = !same(prev) || !!sep
+        const lastOfGroup = !same(next) || (!!next && dateOfTimestamp(next.createdAt) !== day)
+        const side = m.mine ? 'me' : 'them'
+        const ref = m.taskId ? titles[m.taskId] || null : null
+        const src = (m.imagePath && urls[m.imagePath]) || m.preview
+        return (
+          <div key={m.key} style={{ display: 'contents' }}>
+            {sep && <p className="chat-day">{sep}</p>}
+            {isWord(m) ? (
+              <div className={`msg-row ${side}${first ? ' first' : ''}${Date.parse(m.createdAt) > openedAt ? ' fresh' : ''}`}>
+                <div className={`msg ${side}${first ? ' first' : ''}${lastOfGroup ? ' last' : ''}${m.kind === 'image' ? ' has-photo' : ''}${m.kind === 'gif' && isKnownGif(m.body) ? ' has-gif' : ''}${m.sending ? ' sending' : ''}`}>
+                  {ref && <div className="ref">Sur {m.mine ? `l’objectif de ${partnerName}` : 'ton objectif'} : {ref}</div>}
+                  {m.kind === 'image' && (
+                    <button type="button" className="msg-photo" style={{ aspectRatio: String(m.ratio || 1), width: `min(240px, 62vw, ${Math.round(320 * (m.ratio || 1))}px)` }} onClick={() => src && onView(src)} aria-label="Voir la photo en grand">
+                      {src && <img src={src} alt="" loading="lazy" decoding="async" />}
+                    </button>
+                  )}
+                  {m.kind === 'gif' && isKnownGif(m.body) ? (
+                    <img className="msg-gif" src={gifSrc(m.body as string)} alt={gifLabel(m.body)} width={384} height={336} loading="lazy" decoding="async" />
+                  ) : m.kind === 'gif' ? (
+                    <div className="msg-text">GIF</div>
+                  ) : (
+                    m.body && <div className="msg-text">{m.body}</div>
+                  )}
+                </div>
+                {lastOfGroup && <div className="msg-time">{m.sending ? 'Envoi…' : timeLabel(m.createdAt)}</div>}
+              </div>
+            ) : m.kind === 'treat' ? (
+              <div className="gesture treat"><TreatIcon size={14} />{m.mine ? `Friandise envoyée à ${partnerName}` : `${partnerName} t’a envoyé une friandise`}</div>
+            ) : (
+              <div className="gesture bubble"><BubbleIcon size={14} />{m.mine ? `Bulle envoyée à ${partnerName}` : `${partnerName} t’a envoyé une bulle`}</div>
+            )}
+          </div>
+        )
+      })}
+    </>
+  )
+})

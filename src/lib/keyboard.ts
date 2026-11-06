@@ -31,6 +31,8 @@ export function useKeyboard() {
         const kbOpen = kbHeight > 120 && (editing() || Date.now() < settleUntil)
         const open = kbOpen || (touch && editing())
         root.classList.toggle('kb', open)
+        // « kb-up » seulement quand le clavier est vraiment là : on replie l'en-tête en même temps qu'il monte, en un seul mouvement
+        root.classList.toggle('kb-up', kbOpen)
         if (vv && kbOpen) {
           root.style.setProperty('--app-h', `${Math.round(vv.height)}px`)
           if (window.scrollY || vv.offsetTop) window.scrollTo(0, 0)
@@ -65,7 +67,7 @@ export function useKeyboard() {
       window.removeEventListener('pageshow', onShow)
       window.removeEventListener('resize', onShow)
       document.removeEventListener('visibilitychange', onVisible)
-      root.classList.remove('kb')
+      root.classList.remove('kb', 'kb-up')
       root.style.removeProperty('--app-h')
     }
   }, [])

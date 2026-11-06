@@ -41,4 +41,14 @@ describe('petits mots', () => {
     expect(ids.size).toBe(50)
     for (const id of ids) expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   })
+
+  it('rien de neuf au rechargement : la même liste est rendue, l’écran ne redessine rien', () => {
+    const mk = (id: string, t: string) => ({ id, author_id: 'a', kind: 'text' as const, body: id, task_id: null, image_path: null, created_at: t })
+    const prev = [mk('1', '2026-11-01T10:00:00Z'), mk('2', '2026-11-01T10:01:00Z')]
+    const copy = prev.map((m) => ({ ...m }))
+    expect(mergeMessages(prev, copy)).toBe(prev)
+    const more = mergeMessages(prev, [...copy, mk('3', '2026-11-01T10:02:00Z')])
+    expect(more).not.toBe(prev)
+    expect(more.map((m) => m.id)).toEqual(['1', '2', '3'])
+  })
 })
