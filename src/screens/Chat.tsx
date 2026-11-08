@@ -12,6 +12,7 @@ import { GIF_SERIES, gifLabel, gifSrc, isKnownGif } from '../lib/gifs'
 import { BURST, EFFECTS, FX_BG, FX_CHIP_BG, FX_CHIP_FG, FX_FG, effectOf } from '../lib/effects'
 import type { EffectDef } from '../lib/effects'
 import { BubbleIcon, Icon, TreatIcon } from '../components/ui'
+import { useSwipe } from '../lib/swipe'
 
 // Un message envoyé s'affiche tout de suite, avant la réponse du serveur
 interface Pending {
@@ -248,6 +249,11 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
 
   const submit = () => (photo ? sendPhoto() : sendText(text))
 
+  // Clavier ouvert : un glissement vers le bas sur les messages le ferme (sans clavier, rien ne se passe)
+  const closeKeyboardSwipe = useSwipe({
+    onDown: () => { if (inputRef.current && document.activeElement === inputRef.current) inputRef.current.blur() },
+  })
+
   const pickPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -297,7 +303,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
         </div>
       </header>
 
-      <div className="chat-list" ref={listRef} onScroll={onScroll} aria-live="polite">
+      <div className="chat-list" ref={listRef} onScroll={onScroll} aria-live="polite" {...closeKeyboardSwipe}>
         {items.length === 0 && <div className="empty">Envoie le premier petit mot à {partnerName}.</div>}
         {hidden > 0 && (
           <button type="button" className="btn small chat-more" onClick={showMore}>Voir les mots précédents</button>

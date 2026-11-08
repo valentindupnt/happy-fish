@@ -4,6 +4,7 @@ import { useStore } from '../lib/store'
 import { celebrate } from '../lib/fx'
 import { longDay, dateOfTimestamp } from '../lib/dates'
 import { PHOTO_BUCKET, photoPath, preparePhoto, usePhotoUrls } from '../lib/photos'
+import { useSwipe } from '../lib/swipe'
 import type { DailyQuest } from '../lib/types'
 import { Coin, Flame, Icon, Sheet } from './ui'
 
@@ -203,24 +204,33 @@ function FameBody() {
 function FameSheet({ done, onClose }: { done: DailyQuest[]; onClose: () => void }) {
   const { nameOf } = useStore()
   const [shown, setShown] = useState(60)
-  const [view, setView] = useState<DailyQuest | null>(null)
+  const [viewId, setViewId] = useState<string | null>(null)
   const part = done.slice(0, shown)
   const urls = usePhotoUrls(part.map((q) => q.photo_path as string))
+  // Photo ouverte : glisser vers la gauche ou la droite passe à la suivante ou à la précédente (dans l'ordre du mur, sans boucler), vers le bas la ferme
+  const index = viewId ? done.findIndex((q) => q.id === viewId) : -1
+  const view = index >= 0 ? done[index] : null
+  const go = (step: number) => { const next = done[index + step]; if (next) setViewId(next.id) }
+  const swipe = useSwipe({ onLeft: () => go(1), onRight: () => go(-1), onDown: () => setViewId(null) })
+  // Les voisines se chargent d'avance, pour que le défilement ne montre pas de vide
+  usePhotoUrls([done[index - 1]?.photo_path, done[index + 1]?.photo_path].filter((p): p is string => Boolean(p)))
 
   return (
     <Sheet title="Toute la fame" onClose={onClose}>
       {part.length === 0 && <div className="card empty">Aucun snap pour l’instant. Validez une quête pour ouvrir le mur.</div>}
       <div className="gif-grid">
         {part.map((q) => (
-          <button key={q.id} type="button" aria-label={`${q.title}, ${nameOf(q.profile_id)}`} onClick={() => setView(q)} style={{ padding: 0, border: 0, background: 'none' }}>
+          <button key={q.id} type="button" aria-label={`${q.title}, ${nameOf(q.profile_id)}`} onClick={() => setViewId(q.id)} style={{ padding: 0, border: 0, background: 'none' }}>
             <Snap url={urls[q.photo_path as string]} ratio="1 / 1" />
           </button>
         ))}
       </div>
       {done.length > shown && <button type="button" className="btn block" onClick={() => setShown((n) => n + 60)}>Voir plus</button>}
       {view && (
-        <Sheet title={view.title} onClose={() => setView(null)}>
-          <FameView q={view} who={nameOf(view.profile_id)} />
+        <Sheet title={view.title} onClose={() => setViewId(null)}>
+          <div {...swipe} style={{ minHeight: '60vh' }}>
+            <FameView key={view.id} q={view} who={nameOf(view.profile_id)} />
+          </div>
         </Sheet>
       )}
     </Sheet>
