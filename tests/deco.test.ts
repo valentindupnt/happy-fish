@@ -8,7 +8,7 @@ let as: Awaited<ReturnType<typeof createDb>>['as']
 let admin: Awaited<ReturnType<typeof createDb>>['admin']
 
 async function giveXp(user: string, xp: number) {
-  await admin(`insert into public.xp_events (profile_id, amount, reason, ref_date) values ($1, $2, 'treat', public.today_paris() - (select count(*)::int from public.xp_events where profile_id = $1))`, [user, xp])
+  await admin(`insert into public.xp_events (profile_id, amount, coins, reason, ref_date) values ($1, $2, $2 / 5, 'treat', public.today_paris() - (select count(*)::int from public.xp_events where profile_id = $1))`, [user, xp])
 }
 const coins = async (u: string) => (await as<{ coins: number }>(u, `select coins from public.fish_status where profile_id = auth.uid()`))[0].coins
 const level = async (u: string) => (await as<{ level: number }>(u, `select level from public.fish_status where profile_id = auth.uid()`))[0].level
@@ -177,7 +177,7 @@ describe('Happy Fish, décorations, cadeaux et collections', () => {
 
 describe('Happy Fish, migration 008 sur une base déjà utilisée', () => {
   it('garde les achats et les pièces, ne se joue qu’une fois, et donne un cadeau à qui l’a mérité', async () => {
-    const { db, as: as2, admin: admin2 } = await createDb(SQL_FILES.filter((f) => !f.includes('008') && !f.includes('012')))
+    const { db, as: as2, admin: admin2 } = await createDb(SQL_FILES.filter((f) => !f.includes('008') && !f.includes('012') && !f.includes('016')))
     await admin2(`insert into auth.users (id, email) values ('${VAL}', 'v@t.fr'), ('${JULIE}', 'j@t.fr')`)
     const [{ code }] = await as2<{ code: string }>(VAL, `select public.create_couple('Valentin') as code`)
     await as2(JULIE, `select public.join_couple($1, 'Julie')`, [code])

@@ -3,7 +3,7 @@ import type React from 'react'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { addDays } from '../lib/dates'
-import { xpForMinutes } from '../lib/xp'
+import { rewardLabel } from '../lib/xp'
 import { canAct, isBlocked, tasksOfDay } from '../lib/tasks'
 import { burstFrom, celebrate } from '../lib/fx'
 import type { Task } from '../lib/types'
@@ -87,13 +87,13 @@ export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: T
         </span>
       </button>
       {done ? (
-        <span className="chip green">+{xpForMinutes(goal.minutes)} XP</span>
+        <span className="chip green">{rewardLabel(goal.minutes)}</span>
       ) : blocked ? (
         <span className="chip cream">À faire</span>
       ) : mine && !future ? (
         <button type="button" className="btn small" onClick={() => actions.move(task, actions.tomorrow, 'Reporté à demain')}>Reporter</button>
       ) : (
-        <span className="chip cream">+{xpForMinutes(goal.minutes)} XP</span>
+        <span className="chip cream">{rewardLabel(goal.minutes)}</span>
       )}
     </li>
   )

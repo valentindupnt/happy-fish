@@ -76,8 +76,8 @@ describe('Happy Fish, carnet des visiteurs', () => {
     expect(await found(VAL)).toEqual([])
     await checkMany(g, VAL, 1, 10)
     expect(await found(VAL)).toEqual([{ visitor_id: 'bernard', profile_id: VAL }])
-    const [{ xp }] = await admin<{ xp: number }>(`select sum(amount)::int as xp from public.xp_events where profile_id = $1`, [VAL])
-    expect(await coins(VAL)).toBe(Math.floor(xp / 5) + 5) // les pièces de l'XP, plus les 5 du visiteur
+    const [{ c }] = await admin<{ c: number }>(`select sum(coins)::int as c from public.xp_events where profile_id = $1`, [VAL])
+    expect(await coins(VAL)).toBe(c + 5) // les pièces des sous-objectifs, plus les 5 du visiteur
     expect((await book(JULIE)).profiles[VAL].tasks).toBe(10)
     expect((await book(JULIE)).profiles[JULIE].tasks).toBe(0)
   })
@@ -183,7 +183,7 @@ describe('Happy Fish, carnet des visiteurs', () => {
   })
 
   it('appliquée sur une base déjà utilisée, la migration fait arriver les visiteurs déjà mérités', async () => {
-    const { db, as: as2, admin: admin2 } = await createDb(SQL_FILES.filter((f) => !f.includes('007') && !f.includes('008') && !f.includes('012')))
+    const { db, as: as2, admin: admin2 } = await createDb(SQL_FILES.filter((f) => !f.includes('007') && !f.includes('008') && !f.includes('012') && !f.includes('016')))
     await admin2(`insert into auth.users (id, email) values ('${VAL}', 'v@t.fr'), ('${JULIE}', 'j@t.fr')`)
     const [{ code }] = await as2<{ code: string }>(VAL, `select public.create_couple('Valentin') as code`)
     await as2(JULIE, `select public.join_couple($1, 'Julie')`, [code])

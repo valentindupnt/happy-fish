@@ -7,7 +7,7 @@ let as: Awaited<ReturnType<typeof createDb>>['as']
 let admin: Awaited<ReturnType<typeof createDb>>['admin']
 
 async function giveXp(user: string, amount: number) {
-  await admin(`insert into public.xp_events (profile_id, amount, reason) values ($1, $2, 'task')`, [user, amount])
+  await admin(`insert into public.xp_events (profile_id, amount, coins, reason) values ($1, $2, $2 / 5, 'task')`, [user, amount])
 }
 async function level(user: string): Promise<number> {
   return (await as<{ level: number }>(user, `select level from public.fish_status where profile_id = auth.uid()`))[0].level

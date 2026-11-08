@@ -145,7 +145,7 @@ describe('Happy Fish, règles de la base', () => {
   })
 
   it('dans les deux bocaux, le poisson reste au niveau 10 et garde l’XP en réserve', async () => {
-    await admin(`insert into public.xp_events (profile_id, amount, reason) values ($1, 2000, 'treat')`, [VAL])
+    await admin(`insert into public.xp_events (profile_id, amount, coins, reason) values ($1, 2000, 400, 'treat')`, [VAL])
     const [fish] = await as<{ level: number; level_uncapped: number }>(VAL,
       `select level, level_uncapped from public.fish_status where profile_id = auth.uid()`)
     expect(fish.level).toBe(10)

@@ -26,7 +26,7 @@ describe('Happy Fish, lot 3', () => {
   })
 
   it('l’XP en réserve rapporte des pièces : la cagnotte ne peut plus se bloquer', async () => {
-    await admin(`insert into public.xp_events (profile_id, amount, reason) values ($1, 900, 'treat')`, [VAL])
+    await admin(`insert into public.xp_events (profile_id, amount, coins, reason) values ($1, 900, 180, 'treat')`, [VAL])
     const [f] = await as<{ level: number; level_uncapped: number }>(VAL, `select level, level_uncapped from public.fish_status where profile_id = auth.uid()`)
     expect(f).toEqual({ level: 10, level_uncapped: 14 })
     expect(await coins(VAL)).toBe(180) // 900 XP : 1 pièce pour 5 XP, réserve comprise

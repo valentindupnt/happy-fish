@@ -6,7 +6,7 @@ let as: Awaited<ReturnType<typeof createDb>>['as']
 let admin: Awaited<ReturnType<typeof createDb>>['admin']
 
 async function giveXp(user: string, xp: number) {
-  await admin(`insert into public.xp_events (profile_id, amount, reason, ref_date) values ($1, $2, 'treat', public.today_paris() - (select count(*)::int from public.xp_events where profile_id = $1))`, [user, xp])
+  await admin(`insert into public.xp_events (profile_id, amount, coins, reason, ref_date) values ($1, $2, $2 / 5, 'treat', public.today_paris() - (select count(*)::int from public.xp_events where profile_id = $1))`, [user, xp])
 }
 const coins = async (u: string) => (await as<{ coins: number }>(u, `select coins from public.fish_status where profile_id = auth.uid()`))[0].coins
 const owns = async (u: string, item: string) => (await as<{ n: number }>(u, `select count(*)::int as n from public.purchases where profile_id = auth.uid() and item_id = $1`, [item]))[0].n === 1

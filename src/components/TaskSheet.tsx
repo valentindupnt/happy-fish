@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { addDays, DAY_LETTERS, longDay, weekStart } from '../lib/dates'
-import { xpForMinutes } from '../lib/xp'
+import { rewardLabel } from '../lib/xp'
 import { canAct, isBlocked } from '../lib/tasks'
 import { MAX_POSTPONED } from '../lib/types'
 import type { Task } from '../lib/types'
@@ -78,7 +78,7 @@ export function TaskSheet({ task, onClose, onEncourage, onFocus }: { task: Task;
   return (
     <Sheet title={goal.title} onClose={onClose}>
       <p className="small" style={{ margin: 0 }}>
-        {owner}, {longDay(task.date).toLowerCase()}, {cat ? `${cat.name}, ` : ''}{goal.minutes} min, +{xpForMinutes(goal.minutes)} XP
+        {owner}, {longDay(task.date).toLowerCase()}, {cat ? `${cat.name}, ` : ''}{goal.minutes} min, {rewardLabel(goal.minutes)}
         {goal.recurring ? ', chaque semaine' : ''}
         {done && task.done_by ? `. Fait par ${nameOf(task.done_by)}.` : ''}
       </p>
@@ -123,7 +123,7 @@ export function TaskSheet({ task, onClose, onEncourage, onFocus }: { task: Task;
             <label htmlFor="goal-minutes-edit">Durée (minutes)</label>
             <input id="goal-minutes-edit" className="input" type="number" inputMode="numeric" min={1} max={600} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
             <span className="small">
-              {Number(minutes) >= 1 && Number(minutes) <= 600 ? `+${xpForMinutes(Math.round(Number(minutes)))} XP${done ? ' : l’XP déjà gagnée ne change pas.' : ''}` : 'Entre 1 et 600 minutes'}
+              {Number(minutes) >= 1 && Number(minutes) <= 600 ? `${rewardLabel(Math.round(Number(minutes)))}${done ? ' : l’XP et les pièces déjà gagnées ne changent pas.' : ''}` : 'Entre 1 et 600 minutes'}
               {goal.recurring ? ' Vaut pour tous les jours de cet objectif.' : ''}
             </span>
           </div>

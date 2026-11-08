@@ -10,7 +10,7 @@ async function coins(user: string): Promise<number> {
 }
 
 async function giveXp(user: string, amount: number) {
-  await admin(`insert into public.xp_events (profile_id, amount, reason) values ($1, $2, 'treat')`, [user, amount])
+  await admin(`insert into public.xp_events (profile_id, amount, coins, reason) values ($1, $2, $2 / 5, 'treat')`, [user, amount])
 }
 
 describe('Happy Fish, lot 2', () => {

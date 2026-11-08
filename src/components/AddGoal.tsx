@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { addDays, DAY_LETTERS, isoDow, weekLabel, weekStart } from '../lib/dates'
-import { xpForMinutes } from '../lib/xp'
+import { rewardLabel } from '../lib/xp'
 import { Sheet, Switch } from './ui'
 
 const MINUTES = [5, 10, 15, 20, 30, 45, 60, 90, 120]
@@ -109,7 +109,7 @@ export function AddGoal({ init, onClose }: { init: AddGoalInit; onClose: () => v
       )}
 
       <div className="field">
-        <span className="label" id="min-label">Temps : {minutes} min, soit +{xpForMinutes(minutes)} XP</span>
+        <span className="label" id="min-label">Temps : {minutes} min, soit {rewardLabel(minutes)}</span>
         <div className="wrap" role="group" aria-labelledby="min-label">
           {MINUTES.map((m) => (
             <button key={m} type="button" className="tag" aria-pressed={minutes === m} onClick={() => setMinutes(m)}>

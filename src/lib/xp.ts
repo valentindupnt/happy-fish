@@ -1,4 +1,4 @@
-// Mêmes règles que dans la base (supabase/migrations/006_progression.sql)
+// Mêmes règles que dans la base (supabase/migrations/006_progression.sql, pièces : 016_coins_per_goal.sql)
 export const STADES = ['Alevin', 'Petit', 'Juvénile', 'Moyen', 'Grand', 'Adulte', 'Majestueux', 'Ancien', 'Légendaire', 'Mythique']
 export const MAX_LEVEL = 50
 export const LEVELS_PER_STADE = 5
@@ -33,7 +33,21 @@ export function xpForMinutes(minutes: number): number {
   return Math.min(24, Math.max(1, Math.floor(minutes / 5)))
 }
 
-/** 1 pièce pour 5 XP gagnés, réserve comprise */
+/** Pièces d'un sous-objectif réussi selon son temps : moins de 15 min 0, 15 à 29 min 1, 30 à 45 min 2, plus de 45 min 3 (migration 016) */
+export function coinsForMinutes(minutes: number): number {
+  if (minutes > 45) return 3
+  if (minutes >= 30) return 2
+  if (minutes >= 15) return 1
+  return 0
+}
+
+/** Gain d'un sous-objectif en toutes lettres : « +3 XP » ou « +3 XP, +2 pièces » */
+export function rewardLabel(minutes: number): string {
+  const c = coinsForMinutes(minutes)
+  return `+${xpForMinutes(minutes)} XP${c > 0 ? `, +${c} pièce${c > 1 ? 's' : ''}` : ''}`
+}
+
+/** Ancien barème (1 pièce pour 5 XP), gardé pour les pièces gagnées avant la migration 016 */
 export function coinsFromXp(xp: number): number {
   return Math.floor(Math.max(0, xp) / 5)
 }
