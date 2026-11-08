@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { addDays } from '../lib/dates'
 import { xpForMinutes } from '../lib/xp'
-import { canAct, tasksOfDay } from '../lib/tasks'
+import { canAct, isBlocked, tasksOfDay } from '../lib/tasks'
 import { burstFrom, celebrate } from '../lib/fx'
 import type { Task } from '../lib/types'
 import { CheckMark, Flame } from './ui'
@@ -40,9 +40,10 @@ export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: T
   const cat = categoryOf(goal.category_id)
   const mine = canAct(task, userId)
   const done = Boolean(task.done_at)
+  const blocked = isBlocked(task)
   const future = task.date > today
   const streak = goal.recurring ? streaks.find((x) => x.goal_id === goal.id)?.current_streak ?? 0 : 0
-  const details = [cat?.name, `${goal.minutes} min`, goal.recurring ? 'chaque semaine' : null, task.note || goal.note ? 'une note' : null]
+  const details = [cat?.name, `${goal.minutes} min`, goal.recurring ? 'chaque semaine' : null, blocked ? 'bloqué, à faire' : null, task.note || goal.note ? 'une note' : null]
     .filter(Boolean)
     .join(', ')
 
@@ -87,6 +88,8 @@ export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: T
       </button>
       {done ? (
         <span className="chip green">+{xpForMinutes(goal.minutes)} XP</span>
+      ) : blocked ? (
+        <span className="chip cream">À faire</span>
       ) : mine && !future ? (
         <button type="button" className="btn small" onClick={() => actions.move(task, actions.tomorrow, 'Reporté à demain')}>Reporter</button>
       ) : (

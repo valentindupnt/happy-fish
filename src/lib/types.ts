@@ -58,6 +58,9 @@ export interface Goal {
   archived: boolean
 }
 
+/** Un sous-objectif reporté 2 fois est bloqué : il doit être fait */
+export const MAX_POSTPONED = 2
+
 export interface Task {
   id: string
   goal_id: string
@@ -68,6 +71,8 @@ export interface Task {
   skipped: boolean
   done_at: string | null
   done_by: string | null
+  /** Nombre de reports (2 au maximum). Absent tant que la migration 015 n'est pas appliquée */
+  postponed?: number
 }
 
 export interface Wish {

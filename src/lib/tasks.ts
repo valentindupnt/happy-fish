@@ -1,5 +1,11 @@
 import { addDays, weekStart } from './dates'
+import { MAX_POSTPONED } from './types'
 import type { Task } from './types'
+
+/** Bloqué : déjà reporté 2 fois, il ne bouge plus et doit être fait */
+export function isBlocked(task: Task): boolean {
+  return !task.done_at && (task.postponed ?? 0) >= MAX_POSTPONED
+}
 
 /** Sous-objectifs visibles d'une personne un jour donné (les siens et les communs) */
 export function tasksOfDay(tasks: Task[], day: string, owner: string): Task[] {
