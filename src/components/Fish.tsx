@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import type { FishColor } from '../lib/types'
 import type { Mood } from '../lib/mood'
 import { DecoPreview, DecoRow } from './Deco'
+import { makeGrid, OUTLINE, refine, setCell, toRuns } from '../lib/pixelfine'
+import type { Grid } from '../lib/pixelfine'
 
 // Sprite 18 × 12 : o contour, b corps, l ventre, f nageoires, h reflet, w blanc de l'œil, k pupille
 export const SPRITE = [
@@ -51,7 +53,7 @@ export const HATS: Record<string, Px[]> = {
 
 /** Ce que chaque stade ajoute au dessin (cumulatif) : [x, y, largeur, hauteur, teinte]
  *  teinte : 'f' nageoire, 'h' reflet, 'l' ventre, ou une couleur fixe */
-const STADE_PARTS: Array<[number, Array<[number, number, number, number, string]>]> = [
+export const STADE_PARTS: Array<[number, Array<[number, number, number, number, string]>]> = [
   [3, [[9, -1, 2, 1, 'f']]], // Juvénile : crête dorsale
   [4, [[10, 7, 1, 1, 'h'], [12, 8, 1, 1, 'h'], [8, 6, 1, 1, 'h']]], // Moyen : écailles claires
   [5, [[0, 2, 1, 2, 'f'], [0, 8, 1, 2, 'f']]], // Grand : queue fourchue
@@ -61,40 +63,54 @@ const STADE_PARTS: Array<[number, Array<[number, number, number, number, string]
   [9, [[7, 3, 1, 1, '#FFFFFF'], [11, 6, 1, 1, '#FFFFFF'], [9, 8, 1, 1, '#FFFFFF']]], // Légendaire : écailles nacrées
 ]
 
-interface Run { x: number; y: number; w: number; c: string }
-
-function runsFor(color: FishColor): Run[] {
+/** Le poisson (18 × 12 plus accessoire, détails de stade et humeur) sous forme de grille de couleurs */
+export function fishGrid(color: FishColor, stade: number, mood: Mood = 'normal', hat: string | null = null): Grid {
   const p = PALETTES[color] || PALETTES.corail
-  const colorOf = (ch: string, x: number) => {
-    if (x === 9 && 'bhl'.includes(ch)) return color === 'nuit' ? '#F2C66D' : '#FFFFFF'
-    switch (ch) {
-      case 'o': case 'k': return '#1B1B3A'
-      case 'w': return '#FFFFFF'
-      case 'b': return p.b
-      case 'l': return p.l
-      case 'f': return p.f
-      case 'h': return p.h
-      default: return ''
-    }
+  const g = makeGrid(20, 16, -1, -4)
+  const rect = (x: number, y: number, w: number, h: number, c: string) => {
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) setCell(g, x + i, y + j, c)
   }
-  const runs: Run[] = []
   SPRITE.forEach((row, y) => {
-    let x = 0
-    while (x < row.length) {
-      const c = colorOf(row[x], x)
-      if (!c) { x++; continue }
-      let w = 1
-      while (x + w < row.length && colorOf(row[x + w], x + w) === c) w++
-      runs.push({ x, y, w, c })
-      x += w
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x]
+      let c = ''
+      if (x === 9 && 'bhl'.includes(ch)) c = color === 'nuit' ? '#F2C66D' : '#FFFFFF'
+      else if (ch === 'o' || ch === 'k') c = OUTLINE
+      else if (ch === 'w') c = '#FFFFFF'
+      else if (ch === 'b') c = p.b
+      else if (ch === 'l') c = p.l
+      else if (ch === 'f') c = p.f
+      else if (ch === 'h') c = p.h
+      if (c) setCell(g, x, y, c)
     }
   })
+  for (const [s, parts] of STADE_PARTS) {
+    if (stade < s) continue
+    for (const [x, y, w, h, t] of parts) rect(x, y, w, h, t === 'f' ? p.f : t === 'h' ? p.h : t === 'l' ? p.l : t)
+  }
+  if (mood === 'sleep') { rect(12, 4, 2, 2, p.b); rect(12, 5, 2, 1, OUTLINE) }
+  if (mood === 'happy') { rect(12, 4, 2, 1, OUTLINE); rect(12, 5, 2, 1, p.b); rect(11, 5, 1, 1, OUTLINE) }
+  if (mood === 'think') { rect(11, 3, 3, 1, OUTLINE); rect(12, 4, 1, 1, p.b) }
+  if (hat && HATS[hat]) for (const [x, y, w, h, c] of HATS[hat]) rect(x, y, w, h, c)
+  return g
+}
+
+const fineCache = new Map<string, Array<{ x: number; y: number; w: number; c: string }>>()
+
+/** Rendu fin 36 × 24 (Scale2x puis ombrage), gardé en cache par couleur, stade, humeur et accessoire */
+export function fineRuns(color: FishColor, stade: number, mood: Mood, hat: string | null, silhouette: boolean) {
+  const key = `${color}|${stade}|${silhouette ? 'sil' : mood}|${silhouette ? '' : hat ?? ''}|${silhouette ? 1 : 0}`
+  let runs = fineCache.get(key)
+  if (!runs) {
+    const fine = refine(fishGrid(color, stade, silhouette ? 'normal' : mood, silhouette ? null : hat))
+    if (silhouette) fine.cells = fine.cells.map((c) => (c ? OUTLINE : null))
+    runs = toRuns(fine)
+    fineCache.set(key, runs)
+  }
   return runs
 }
 
-const cache = new Map<FishColor, Run[]>()
-
-/** Le poisson pixel art (avec son accessoire et son humeur). Hauteur = largeur × 16/18. */
+/** Le poisson pixel art en pixels fins (avec son accessoire et son humeur). Hauteur = largeur × 16/18. */
 export function Fish({ color, width = 54, flip = false, label, hat, mood = 'normal', stade = 1, silhouette = false }: {
   color: FishColor; width?: number; flip?: boolean; label?: string; hat?: string | null; mood?: Mood
   /** Stade de 1 à 10 : chaque stade ajoute un détail au dessin */
@@ -102,15 +118,10 @@ export function Fish({ color, width = 54, flip = false, label, hat, mood = 'norm
   /** Ombre du poisson (aperçu du prochain stade) */
   silhouette?: boolean
 }) {
-  if (!cache.has(color)) cache.set(color, runsFor(color))
-  const runs = cache.get(color)!
-  const pal = PALETTES[color] || PALETTES.corail
-  const body = pal.b
-  const tint = (t: string) => (silhouette ? '#1B1B3A' : t === 'f' ? pal.f : t === 'h' ? pal.h : t === 'l' ? pal.l : t)
-  const parts = STADE_PARTS.filter(([s]) => stade >= s).flatMap(([, px]) => px)
+  const runs = fineRuns(color, stade, mood, hat ?? null, silhouette)
   return (
     <svg
-      viewBox="0 -4 18 16"
+      viewBox="0 -8 36 32"
       width={width}
       height={(width * 16) / 18}
       shapeRendering="crispEdges"
@@ -120,38 +131,23 @@ export function Fish({ color, width = 54, flip = false, label, hat, mood = 'norm
       style={{ transform: flip ? 'scaleX(-1)' : undefined, display: 'block', overflow: 'visible' }}
     >
       {stade >= 10 && !silhouette && (
-        <g className="fish-aura" fill="#FFE08F">
+        <g className="fish-aura" fill="#FFE08F" transform="scale(2)">
           <rect x={-1} y={1} width={1} height={1} /><rect x={18} y={2} width={1} height={1} />
           <rect x={4} y={-2} width={1} height={1} /><rect x={15} y={11} width={1} height={1} /><rect x={2} y={11} width={1} height={1} />
         </g>
       )}
       <g className={`fish-body mood-${silhouette ? 'normal' : mood}`} opacity={silhouette ? 0.22 : undefined}>
-        {runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={silhouette ? '#1B1B3A' : r.c} />)}
-        {parts.map(([x, y, w, h, t], i) => <rect key={`s${i}`} x={x} y={y} width={w} height={h} fill={tint(t)} />)}
-        {mood === 'sleep' && (
-          <>
-            <rect x={12} y={4} width={2} height={2} fill={body} />
-            <rect x={12} y={5} width={2} height={1} fill="#1B1B3A" />
-          </>
-        )}
-        {mood === 'happy' && (
-          <>
-            <rect x={12} y={4} width={2} height={1} fill="#1B1B3A" />
-            <rect x={12} y={5} width={2} height={1} fill={body} />
-            <rect x={11} y={5} width={1} height={1} fill="#1B1B3A" />
-          </>
-        )}
-        {mood === 'sad' && <rect className="fish-tear" x={13} y={6} width={1} height={2} fill="#8DD3FF" />}
-        {!silhouette && hat && HATS[hat]?.map(([x, y, w, h, c], i) => <rect key={`h${i}`} x={x} y={y} width={w} height={h} fill={c} />)}
+        {runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={r.c} />)}
+        {mood === 'sad' && !silhouette && <rect className="fish-tear" x={26} y={12} width={2} height={4} fill="#8DD3FF" />}
       </g>
       {mood === 'sleep' && (
-        <g className="fish-z" fill="#FFFFFF">
+        <g className="fish-z" fill="#FFFFFF" transform="scale(2)">
           <rect x={15} y={-4} width={3} height={1} /><rect x={16} y={-3} width={1} height={1} /><rect x={15} y={-2} width={3} height={1} />
           <rect x={13} y={-1} width={2} height={1} opacity={0.7} />
         </g>
       )}
       {mood === 'happy' && (
-        <g className="fish-spark" fill="#FFE08F">
+        <g className="fish-spark" fill="#FFE08F" transform="scale(2)">
           <rect x={1} y={-3} width={3} height={1} /><rect x={2} y={-4} width={1} height={3} />
           <rect x={16} y={9} width={2} height={1} opacity={0.8} />
         </g>
