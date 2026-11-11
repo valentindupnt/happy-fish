@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { dateOfTimestamp, longDay, timeLabel } from '../lib/dates'
 import { isNetworkError, newMessageId } from '../lib/messages'
-import { PHOTO_BUCKET, photoPath, photoRatio, preparePhoto, usePhotoUrls } from '../lib/photos'
+import { PHOTO_BUCKET, mirrorPhoto, photoPath, photoRatio, preparePhoto, usePhotoUrls } from '../lib/photos'
 import type { PreparedPhoto } from '../lib/photos'
 import { Fish } from '../components/Fish'
 import { GIF_SERIES, gifLabel, gifSrc, isKnownGif } from '../lib/gifs'
@@ -254,6 +254,16 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
     onDown: () => { if (inputRef.current && document.activeElement === inputRef.current) inputRef.current.blur() },
   })
 
+  const flipPhoto = async () => {
+    if (!photo) return
+    try {
+      const flipped = await mirrorPhoto(photo)
+      previews.current.push(flipped.preview)
+      setPhoto(flipped)
+    } catch {
+      toast('Cette photo n’a pas pu être retournée', 'error')
+    }
+  }
   const pickPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -369,6 +379,7 @@ export function Chat({ refTaskId, clearRef }: { refTaskId: string | null; clearR
             <div className="composer-photo">
               <img src={photo.preview} alt="Photo à envoyer" />
               <button type="button" aria-label="Retirer la photo" onClick={() => setPhoto(null)}><Icon name="close" size={12} stroke={3} /></button>
+              <button type="button" className="mirror-btn" aria-label="Retourner la photo (miroir)" onClick={flipPhoto}>Miroir</button>
             </div>
           )}
           <label htmlFor="mot" className="sr-only">Écrire un petit mot</label>

@@ -3,7 +3,8 @@ import { errorText, supabase } from '../lib/supabase'
 import { useStore } from '../lib/store'
 import { celebrate } from '../lib/fx'
 import { longDay, dateOfTimestamp } from '../lib/dates'
-import { PHOTO_BUCKET, photoPath, preparePhoto, usePhotoUrls } from '../lib/photos'
+import { PHOTO_BUCKET, mirrorPhoto, photoPath, preparePhoto, usePhotoUrls } from '../lib/photos'
+import type { PreparedPhoto } from '../lib/photos'
 import { useSwipe } from '../lib/swipe'
 import type { DailyQuest } from '../lib/types'
 import { Coin, Flame, Icon, Sheet } from './ui'
@@ -18,6 +19,7 @@ export function QuestsCard() {
   const [busy, setBusy] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const target = useRef<DailyQuest | null>(null)
+  const [snap, setSnap] = useState<{ q: DailyQuest; ph: PreparedPhoto } | null>(null)
 
   const list = dailyQuests.filter((q) => q.profile_id === userId && q.day === today).sort((a, b) => a.slot - b.slot)
   const kept = list.filter((q) => q.kept).length
@@ -34,14 +36,40 @@ export function QuestsCard() {
     if (!file || !q || !couple) return
     setBusy(q.id)
     try {
-      const ph = await preparePhoto(file)
+      setSnap({ q, ph: await preparePhoto(file) })
+    } catch (err) {
+      toast(errorText(err), 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const closeSnap = () => {
+    if (snap) URL.revokeObjectURL(snap.ph.preview)
+    setSnap(null)
+  }
+
+  const flipSnap = async () => {
+    if (!snap) return
+    try {
+      setSnap({ q: snap.q, ph: await mirrorPhoto(snap.ph) })
+    } catch (err) {
+      toast(errorText(err), 'error')
+    }
+  }
+
+  const sendSnap = async () => {
+    if (!snap || !couple) return
+    const { q, ph } = snap
+    setBusy(q.id)
+    try {
       const path = photoPath(couple.id, ph.width, ph.height)
       const up = await run(() => supabase.storage.from(PHOTO_BUCKET).upload(path, ph.blob, { contentType: 'image/jpeg', cacheControl: '31536000' }))
       if (up && await run(() => supabase.rpc('complete_quest', { p_quest: q.id, p_photo: path }), `+${coinsOf(q.hard)} pièces`)) {
         celebrate()
+        closeSnap()
         await reload(['quests', 'fish'])
       }
-      URL.revokeObjectURL(ph.preview)
     } catch (err) {
       toast(errorText(err), 'error')
     } finally {
@@ -84,6 +112,15 @@ export function QuestsCard() {
         )
       })}
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+      {snap && (
+        <Sheet title={snap.q.title} onClose={closeSnap}>
+          <img className="snap-preview" src={snap.ph.preview} alt="Ton snap avant envoi" />
+          <div className="row-between" style={{ gap: 8 }}>
+            <button type="button" className="btn" disabled={busy !== null} onClick={flipSnap}>Miroir</button>
+            <button type="button" className="btn primary" style={{ flex: 1 }} disabled={busy !== null} onClick={sendSnap}>{busy ? '…' : `Valider, +${coinsOf(snap.q.hard)} pièces`}</button>
+          </div>
+        </Sheet>
+      )}
       {managing && <QuestManager onClose={() => setManaging(false)} />}
     </section>
   )

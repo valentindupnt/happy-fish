@@ -23,6 +23,7 @@ import { Icon, Toasts } from './components/ui'
 import { CarnetSheet, VisitorArrival } from './components/Carnet'
 import { GiftArrival } from './components/Gifts'
 import { useKeyboard } from './lib/keyboard'
+import { useUpdateAvailable } from './lib/update'
 
 type Tab = 'today' | 'together' | 'chat' | 'aquarium'
 
@@ -51,8 +52,19 @@ export default function App() {
 
   return (
     <StoreProvider key={session.user.id} userId={session.user.id}>
-      <div className="app"><Main /><Toasts /></div>
+      <div className="app"><Main /><UpdateBanner /><Toasts /></div>
     </StoreProvider>
+  )
+}
+
+function UpdateBanner() {
+  const available = useUpdateAvailable()
+  if (!available) return null
+  return (
+    <div className="update-banner" role="status">
+      <span>Nouvelle version disponible</span>
+      <button type="button" className="btn small primary" onClick={() => window.location.reload()}>Recharger</button>
+    </div>
   )
 }
 

@@ -9,6 +9,12 @@ import { burstFrom, celebrate } from '../lib/fx'
 import type { Task } from '../lib/types'
 import { CheckMark, Flame } from './ui'
 
+function Clock() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+  )
+}
+
 export function useTaskActions() {
   const store = useStore()
   const { run, reloadTasks, reload, today, queueToggle } = store
@@ -43,7 +49,8 @@ export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: T
   const blocked = isBlocked(task)
   const future = task.date > today
   const streak = goal.recurring ? streaks.find((x) => x.goal_id === goal.id)?.current_streak ?? 0 : 0
-  const details = [cat?.name, `${goal.minutes} min`, goal.recurring ? 'chaque semaine' : null, blocked ? 'bloqué, à faire' : null, task.note || goal.note ? 'une note' : null]
+  const reports = Math.min(task.postponed ?? 0, 2)
+  const details = [cat?.name, `${goal.minutes} min`, goal.recurring ? 'chaque semaine' : null, reports ? `reporté ${reports} fois` : null, blocked ? 'bloqué, à faire' : null, task.note || goal.note ? 'une note' : null]
     .filter(Boolean)
     .join(', ')
 
@@ -76,6 +83,9 @@ export function TaskRow({ task, onOpen, showOwner }: { task: Task; onOpen: (t: T
       <button type="button" className="task-main" onClick={() => onOpen(task)}>
         <span className="task-title">
           {goal.title}
+          {reports > 0 && (
+            <span className="report-clocks" aria-hidden="true">{Array.from({ length: reports }, (_, i) => <Clock key={i} />)}</span>
+          )}
           {streak >= 2 && (
             <span className="streak-badge" aria-label={`série de ${streak}`}><Flame size={12} />{streak}</span>
           )}

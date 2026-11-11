@@ -37,6 +37,25 @@ export async function preparePhoto(file: File): Promise<PreparedPhoto> {
   }
 }
 
+// Retourne la photo de gauche à droite (les selfies arrivent en miroir par rapport à l'aperçu)
+export async function mirrorPhoto(ph: PreparedPhoto): Promise<PreparedPhoto> {
+  const img = new Image()
+  img.src = ph.preview
+  await img.decode()
+  const canvas = document.createElement('canvas')
+  canvas.width = ph.width
+  canvas.height = ph.height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Impossible de retourner cette photo')
+  ctx.translate(ph.width, 0)
+  ctx.scale(-1, 1)
+  ctx.drawImage(img, 0, 0, ph.width, ph.height)
+  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', QUALITY))
+  if (!blob) throw new Error('Impossible de retourner cette photo')
+  URL.revokeObjectURL(ph.preview)
+  return { blob, width: ph.width, height: ph.height, preview: URL.createObjectURL(blob) }
+}
+
 // Le nom du fichier garde ses dimensions : la place de la photo est réservée avant son chargement
 export function photoPath(coupleId: string, width: number, height: number): string {
   const id = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
