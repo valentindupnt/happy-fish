@@ -5,13 +5,17 @@ import { useStore } from '../lib/store'
 import { stadeOf } from '../lib/xp'
 import { celebrate } from '../lib/fx'
 import { Fish } from './Fish'
+import { FocusScene } from './FocusScene'
+import { modeOf, progressOf } from '../lib/focusMode'
+import type { TimerMode } from '../lib/focusMode'
 
 // Minuteur plein écran : écran noir, le poisson nage partout, le chrono au centre.
 // L'heure de fin est gardée dans le téléphone : si l'app se ferme, le minuteur reprend où il en était.
 
 const KEY = 'hf-focus'
 
-export interface FocusState { taskId: string; endAt: number | null; left: number; total: number }
+// mode : absent sur un minuteur enregistré avant le mode Focus, ce qui veut dire « classique »
+export interface FocusState { taskId: string; endAt: number | null; left: number; total: number; mode?: TimerMode }
 
 export function readFocus(): FocusState | null {
   try {
@@ -27,9 +31,9 @@ function saveFocus(f: FocusState | null) {
   } catch { /* rien */ }
 }
 
-export function startFocus(taskId: string, minutes: number): FocusState {
+export function startFocus(taskId: string, minutes: number, mode: TimerMode = 'classic'): FocusState {
   const total = minutes * 60_000
-  const f = { taskId, endAt: Date.now() + total, left: total, total }
+  const f: FocusState = { taskId, endAt: Date.now() + total, left: total, total, mode }
   saveFocus(f)
   return f
 }
@@ -144,15 +148,21 @@ export function FocusTimer({ focus, onClose }: { focus: FocusState; onClose: () 
   }
   const stop = () => { saveFocus(null); onClose() }
 
-  const ratio = Math.min(1, Math.max(0, 1 - left / f.total))
+  const ratio = progressOf(left, f.total)
+  const cabin = modeOf(f) === 'focus'
+  const stade = stadeOf(fishOf(userId).level)
 
   return createPortal(
-    <div className={`focus${paused ? ' is-paused' : ''}`} role="dialog" aria-modal="true" aria-label="Minuteur">
-      <div className="focus-swim-x" aria-hidden="true">
-        <div className="focus-swim-y">
-          <Fish color={me?.fish_color || 'corail'} hat={me?.fish_hat} stade={stadeOf(fishOf(userId).level)} width={96} mood={finished ? 'happy' : 'normal'} />
+    <div className={`focus${paused ? ' is-paused' : ''}`} role="dialog" aria-modal="true" aria-label={cabin ? 'Focus' : 'Minuteur'}>
+      {cabin ? (
+        <FocusScene color={me?.fish_color || 'corail'} hat={me?.fish_hat} stade={stade} elapsed={f.total - left} total={f.total} done={finished} />
+      ) : (
+        <div className="focus-swim-x" aria-hidden="true">
+          <div className="focus-swim-y">
+            <Fish color={me?.fish_color || 'corail'} hat={me?.fish_hat} stade={stade} width={96} mood={finished ? 'happy' : 'normal'} />
+          </div>
         </div>
-      </div>
+      )}
       <div className="focus-bubble focus-bubble-a" />
       <div className="focus-bubble focus-bubble-b" />
       <div className="focus-bubble focus-bubble-c" />

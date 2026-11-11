@@ -92,9 +92,15 @@ export function TaskSheet({ task, onClose, onEncourage, onFocus }: { task: Task;
       {mine ? (
         <>
           {!done && task.date <= today && (
-            <button type="button" className="btn primary block" onClick={() => { unlockAudio(); onFocus(startFocus(task.id, goal.minutes)) }}>
-              Lancer le minuteur, {goal.minutes} min
-            </button>
+            <div className="stack" style={{ gap: 8 }}>
+              <button type="button" className="btn primary block" onClick={() => { unlockAudio(); onFocus(startFocus(task.id, goal.minutes)) }}>
+                Lancer le minuteur, {goal.minutes} min
+              </button>
+              <button type="button" className="btn block" onClick={() => { unlockAudio(); onFocus(startFocus(task.id, goal.minutes, 'focus')) }}>
+                Lancer un Focus, {goal.minutes} min
+              </button>
+              <p className="small" style={{ margin: 0 }}>Focus : ton poisson s’assoit à son bureau et réfléchit, sans rien d’autre à l’écran.</p>
+            </div>
           )}
           {!done && !blocked && (
             <div className="card pad stack">

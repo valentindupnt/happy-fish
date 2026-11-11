@@ -436,6 +436,33 @@ button.bowl { background: none; border: none; }
   .focus-swim-x { transform: translate(30vw, 18vh); }
 }
 
+/* Mode Focus : le bocal avec une bibliothèque et un bureau, le poisson va et vient (étape F1) */
+.fscene { position: absolute; inset: 0; pointer-events: none; }
+.fscene-library { position: absolute; top: calc(var(--safe-top) + 14px); left: 5%; width: 90%; height: auto; opacity: 0.5; }
+.fscene-desk { position: absolute; right: 4%; width: 48%; height: 44px; bottom: calc(110px + var(--safe-bottom)); background: #6B3E1E; border-top: 4px solid #8A5A2B; box-shadow: inset 0 -10px 0 #4E2C14; }
+.fscene-lamp { position: absolute; bottom: 100%; left: 10%; margin-bottom: -2px; }
+.fscene-notebook { position: absolute; bottom: 100%; right: 12%; margin-bottom: -2px; }
+.fscene-pencil { position: absolute; bottom: 5px; left: 46px; transform-origin: 0% 50%; animation: fscenepencil 7s ease-in-out infinite; }
+.fscene-pencil.is-writing { animation-duration: 3.5s; }
+.fscene-halo { position: absolute; right: 2%; width: 56%; height: 220px; bottom: calc(130px + var(--safe-bottom)); border-radius: 50%; background: radial-gradient(ellipse at 40% 70%, rgba(255, 200, 100, 0.18), transparent 65%); animation: fsceneglow 9s ease-in-out infinite; }
+.fscene-fish { position: absolute; transform: translate(-50%, -100%); transition: left 6s ease-in-out, top 6s ease-in-out; }
+.fscene-fish.at-desk { top: calc(100% - 150px - var(--safe-bottom)); }
+.fscene-bob { animation: none; }
+.fscene-fish.is-swimming .fscene-bob { animation: fscenebob 3.4s ease-in-out infinite alternate; }
+.fscene-bubble { position: absolute; left: calc(72% + 22px); bottom: calc(238px + var(--safe-bottom)); min-width: 64px; padding: 8px 12px; background: #FFFFFF; border: 2px solid #1B1B3A; border-radius: 12px; display: flex; align-items: center; justify-content: center; animation: fscenefade 0.5s ease 4.5s both; }
+.fscene-bubble-tail { position: absolute; background: #FFFFFF; border: 2px solid #1B1B3A; border-radius: 50%; }
+.fscene-bubble-tail.a { width: 10px; height: 10px; left: -4px; bottom: -14px; }
+.fscene-bubble-tail.b { width: 6px; height: 6px; left: -14px; bottom: -22px; }
+.focus.is-paused .fscene-halo, .focus.is-paused .fscene-pencil, .focus.is-paused .fscene-bob { animation-play-state: paused; }
+@keyframes fsceneglow { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
+@keyframes fscenepencil { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(4deg); } }
+@keyframes fscenebob { 0% { transform: translateY(-8px); } 100% { transform: translateY(8px); } }
+@keyframes fscenefade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .fscene-halo, .fscene-pencil, .fscene-bob, .fscene-bubble { animation: none; }
+  .fscene-fish { transition: none; }
+}
+
 /* Dé des défis */
 .dice-stage { position: relative; height: 76px; display: flex; align-items: flex-end; justify-content: center; gap: 28px; }
 .dice-fish.throwing { animation: throw 0.45s ease-in-out 3; }
